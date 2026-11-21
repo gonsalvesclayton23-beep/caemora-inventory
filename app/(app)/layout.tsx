@@ -13,6 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="card max-w-sm space-y-3 text-center">
           <h1 className="text-lg font-semibold">Waiting for access</h1>
           <p className="text-sm text-slate-500">Your account ({me.email}) has been created. An admin needs to activate it before you can use the app.</p>
+          {me.error && <p className="text-xs text-red-600">Could not read your profile: {me.error}</p>}
           <form action={signOut}><button className="btn-ghost">Sign out</button></form>
         </div>
       </main>
