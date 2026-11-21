@@ -38,6 +38,12 @@ end $$;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function handle_new_user();
 
+-- Logins created before this setup ran get an (inactive) profile too.
+insert into profiles (id, full_name, email, role, active)
+select id, coalesce(raw_user_meta_data ->> 'full_name', split_part(email, '@', 1)), email, 'data_entry', false
+  from auth.users
+on conflict (id) do nothing;
+
 -- ---------------------------------------------------------------- periods
 
 -- Normalise period_month to the 1st and create the period if it is new.
