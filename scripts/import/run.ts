@@ -1,5 +1,6 @@
 // npm run import:dry            -> parse + write import-output/ report
 // npm run import:load           -> same, then load into $DATABASE_URL (add -- --replace to wipe and reload)
+// npm run import:sql            -> same, plus import-output/import.sql to paste into the Supabase SQL editor
 // Options: --file <path.xlsx>   --out <dir>
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -8,6 +9,7 @@ import { build } from './build.ts';
 import { load } from './load.ts';
 import { parseWorkbook } from './parse.ts';
 import { writeReport } from './report.ts';
+import { writeImportSql } from './sql.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..', '..');
@@ -31,6 +33,12 @@ console.log(`Parsed ${parsed.lines.length} lines, ${parsed.shipments.length} shi
 console.log(`${built.products.length} products, ${built.listings.length} listings, ${built.vendors.length} vendors`);
 console.log(`Issues: ${count('error')} errors (rows skipped), ${count('warn')} warnings, ${count('info')} notes`);
 console.log(`Report: ${join(outDir, 'import-report.md')}`);
+
+if (args.includes('--sql')) {
+  const sqlPath = opt('--sql') && !opt('--sql')!.startsWith('--') ? opt('--sql')! : join(outDir, 'import.sql');
+  writeImportSql(sqlPath, parsed, built);
+  console.log(`SQL script: ${sqlPath}`);
+}
 
 if (args.includes('--load')) {
   const url = process.env.DATABASE_URL;

@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit",
     "import:dry": "tsx scripts/import/run.ts --dry-run",
     "import:load": "tsx scripts/import/run.ts --load",
+    "import:sql": "tsx scripts/import/run.ts --sql",
+    "setup:sql": "bash scripts/build-setup-sql.sh",
     "db:test": "bash supabase/tests/run.sh"
   },
   "dependencies": {

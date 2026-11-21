@@ -64,30 +64,28 @@ Selling one product through several companies' accounts is normal: a product has
 
 ## Setting up (one-off)
 
-1. **Create a Supabase project** (region: London). In *SQL Editor*, run the three migration files in order, then `supabase/seed.sql`.
-   Or with the Supabase CLI: `supabase link` then `supabase db push`.
-2. **Create your login**: *Authentication → Users → Add user*. Then in SQL Editor:
+No software to install: everything is pasted into the Supabase and Vercel websites.
+
+1. **Supabase project**: at supabase.com create a project (region **London**, save the database password somewhere safe).
+2. **Database**: *SQL Editor → New query*, paste all of `supabase/setup.sql`, **Run**. (It is the migrations + seed in one file; rebuild it with `npm run setup:sql`.)
+3. **Turn off public sign-up**: *Authentication → Sign In / Providers → Email*: untick "Allow new users to sign up". Logins are created by you.
+4. **Your login**: *Authentication → Users → Add user → Create new user*, tick "Auto confirm". Then in SQL Editor:
    ```sql
-   update profiles set role = 'admin', active = true, full_name = 'Your Name' where id = (select id from auth.users where email = 'you@example.com');
+   update profiles set role = 'admin', active = true, full_name = 'Your Name'
+    where email = 'you@example.com';
    ```
-3. **Nightly flag refresh**: *Database → Extensions → enable pg_cron*, then:
+5. **Import the spreadsheet**: paste `import-output/import.sql` (made by `npm run import:sql`) into a new SQL Editor query and Run.
+   It is one transaction and checks every month × company × currency total against the sheet; if anything is off, nothing is saved.
+6. **Nightly flag refresh** (optional): *Database → Extensions*, enable `pg_cron`, then run:
    ```sql
    select cron.schedule('refresh-flags', '15 2 * * *', 'select refresh_all_flags(); select recompute_fx_from_payments();');
    ```
-4. **Import the sheet** (from your computer, with Node 20+):
-   ```bash
-   npm install
-   ```
-   ```bash
-   npm run import:dry
-   ```
-   Read `import-output/import-report.md`, fix anything listed (in the sheet, or in `scripts/import/overrides.json`), and repeat. Then:
-   ```bash
-   DATABASE_URL='postgresql://…session pooler URL…' npm run import:load
-   ```
-   The load runs in one transaction and checks every month × company × currency total against the sheet before committing.
-5. **Deploy**: import the repo in Vercel and set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (see `.env.example`).
-6. **Invite the India team**: *Authentication → Users → Invite*. Then set their role to `data_entry` and `active = true`.
+7. **Website**: at vercel.com, *Add New → Project*, import this GitHub repo. Under *Environment Variables* add
+   `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Supabase: *Project Settings → API*; the anon/publishable key, never the service_role key). Deploy.
+8. **The India team**: create each login as in step 4 (with a temporary password), then on the app's *Admin* page set their role and tick Active.
+   They change the password under *My account*.
+
+Alternatively, with Node installed, `DATABASE_URL=… npm run import:load` loads directly (same checks).
 
 ## Developing
 
