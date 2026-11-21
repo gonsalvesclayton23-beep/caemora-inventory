@@ -38,7 +38,7 @@ export function writeReport(dir: string, parsed: Parsed, built: Built, issues: I
   writeFileSync(join(dir, 'lines.csv'), csv([
     ['ref', 'month', 'company', 'channel', 'product', 'fnsku', 'qty', 'unit_price', 'courier_per_unit', 'currency', 'line_total', 'sheet_total', 'vendor', 'invoice_no', 'shipment_group'],
     ...parsed.lines.map((l) => [l.ref, l.month, l.company, l.channel, l.description, l.fnsku, l.qty, l.unitPrice, l.courierPerUnit, l.currency,
-      Math.round(((l.unitPrice ?? 0) + l.courierPerUnit) * l.qty * 100) / 100, l.sheetTotal, l.vendor ?? 'Peace Enterprises', l.invoiceNo, l.groupId]),
+      Math.round(((l.unitPrice ?? 0) + l.courierPerUnit) * l.qty * 100) / 100, l.sheetTotal, l.vendor ?? (l.currency === 'GBP' ? 'Alibaba (unspecified seller)' : 'Peace Enterprises'), l.invoiceNo, l.groupId]),
   ]));
 
   writeFileSync(join(dir, 'payments.csv'), csv([
@@ -63,6 +63,21 @@ export function writeReport(dir: string, parsed: Parsed, built: Built, issues: I
       const open = bal;
       bal = open + pur - cn - paid;
       overall.push(`| ${mon(m)} | ${money(open)} | ${money(pur)} | ${cn ? money(cn) : ''} | ${money(paid)} | ${unconf ? money(unconf) : ''} | **${money(bal)}** |`);
+    }
+  }
+  const paidFrom: string[] = ['| Months | Paid for | Paid from | Payments | ₹ |', '|---|---|---|--:|--:|'];
+  {
+    const g = new Map<string, { months: Set<string>; n: number; inr: number }>();
+    for (const p of parsed.payments) {
+      if (p.vendor !== 'Peace Enterprises' || !p.confirmed) continue;
+      const k = `${p.company}|${p.paidFromCompany ?? p.paidFrom ?? '?'}`;
+      const v = g.get(k) ?? { months: new Set(), n: 0, inr: 0 };
+      v.months.add(p.month); v.n++; v.inr += p.amount; g.set(k, v);
+    }
+    for (const [k, v] of [...g.entries()].sort()) {
+      const [c, from] = k.split('|');
+      const ms = [...v.months].sort();
+      paidFrom.push(`| ${mon(ms[0])}–${mon(ms.at(-1)!)} | ${c} | ${from === c ? 'own account' : `**${from}**`} | ${v.n} | ${money(v.inr)} |`);
     }
   }
   const recon: string[] = [];
@@ -126,17 +141,22 @@ Nothing has been written to a database. Review this, fix the sheet or add entrie
 
 ${tabRows.join('\n')}
 
-## Balance owed to Peace Enterprises (₹), all companies together
+## Balance owed to Peace Enterprises (₹), by company
 
-Purchases are ₹ lines with no other vendor. Opening = previous month's closing. Jan opening is assumed to be ₹0.
+Each company pays for the stock sent to it. Purchases are ₹ lines with no other vendor.
+Opening = previous month's closing. Jan opening is assumed to be ₹0.
+
+${recon.join('\n')}
+
+### All companies together
+
+Credit notes with no company (e.g. Nov's ₹6,786) only appear here.
 
 ${overall.join('\n')}
 
-### By company (indicative: payments are made from whichever company account suits)
+## Which account paid
 
-Credit notes with no company only appear in the overall table above.
-
-${recon.join('\n')}
+${paidFrom.join('\n')}
 
 ## Issues
 

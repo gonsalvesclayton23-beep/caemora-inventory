@@ -41,9 +41,11 @@ Thresholds are in the `settings` table.
 
 Every amount carries its currency. ₹→£ uses each month's actual rate from that month's Wise payments
 (`fx_rates`, source `payments`). An admin can override a month (source `manual`).
-Reconciliation is per **vendor × month** across all companies (`v_vendor_balance`), because payments go out from whichever
-company account suits: opening (previous closing) + purchases − credit notes − payments = closing balance due.
-`v_reconciliation` gives the per-company breakdown. Credit notes may have no company, in which case they count only towards the vendor's overall balance.
+Each company has its own bank account and pays the supplier for the stock sent to it, so reconciliation is per
+**vendor × company × month** (`v_reconciliation`): opening (previous closing) + purchases − credit notes − payments = closing balance due.
+`v_vendor_balance` adds the companies together; credit notes with no company count only there.
+Every payment records the account it came from (`paid_from_company`, null = a personal account); `v_payments_by_account`
+shows payments made on another company's behalf.
 Selling one product through several companies' accounts is normal: a product has one listing per company/FNSKU.
 
 ## Setting up (one-off)

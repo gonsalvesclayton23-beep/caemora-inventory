@@ -64,6 +64,7 @@ export interface RawPayment {
   paidOn: string | null;
   method: string | null;
   paidFrom: string | null;
+  paidFromCompany?: string | null;
   reference: string | null;
   confirmed: boolean;
   notes: string | null;
@@ -136,6 +137,18 @@ export async function parseWorkbook(path: string, overrides: Record<string, any>
     else out.issues.push({ ref: ws.name, severity: 'warn', type: 'tab_skipped', message: `Tab "${ws.name}" not recognised` });
   }
   linkSelfPaidGbp(out);
+  for (const p of out.payments) {
+    // "Caemora -Amex", "YD-Wise", "Youdent Ltd" -> company; "Clayton", "Alroy" -> a person's own account
+    const raw = (p.paidFrom ?? '').toLowerCase().replace(/\s*-\s*(amex|debit|wise|ebay)$/, '').trim();
+    p.paidFromCompany = companyCode(raw) ?? companyCode(p.paidFrom);
+    if (p.paidFrom && !p.paidFromCompany && p.confirmed) {
+      out.issues.push({ ref: p.ref, severity: 'info', type: 'paid_from_other_account',
+        message: `${p.company} payment of ${p.currency === 'INR' ? '₹' : '£'}${p.amount} paid from "${p.paidFrom}" (not a company account)` });
+    } else if (p.paidFromCompany && p.paidFromCompany !== p.company) {
+      out.issues.push({ ref: p.ref, severity: 'info', type: 'paid_by_other_company',
+        message: `${p.company} payment of ${p.currency === 'INR' ? '₹' : '£'}${p.amount} paid from ${p.paidFromCompany}'s account` });
+    }
+  }
   return out;
 }
 
@@ -313,6 +326,7 @@ function parseMonthTab(ws: ExcelJS.Worksheet, month: string, out: Parsed, overri
     else if (method && UK_CARD.test(method)) { currency = 'GBP'; why = `paid by ${method}`; }
     else if (hasPound(product, payGbpRaw, get('invoiceAmt')) && (unitPrice == null || unitPrice < 50)) { currency = 'GBP'; why = '£ in the row'; }
     else if (unitPrice != null && unitPrice > 0 && unitPrice < 20 && !Number.isInteger(unitPrice)) { currency = 'GBP'; why = `price ${unitPrice} has pence`; }
+    else if (!payInr && payGbp != null && payGbp > 0 && (unitPrice == null || unitPrice < 50)) { currency = 'GBP'; why = `only a £ payment (£${payGbp})`; }
     if (ov.currency) currency = ov.currency;
     if (currency === 'GBP' && !ov.currency) {
       out.issues.push({ ref, severity: 'info', type: 'currency_gbp', message: `"${product}" treated as £ (${why})` });
@@ -394,7 +408,7 @@ function parseMonthTab(ws: ExcelJS.Worksheet, month: string, out: Parsed, overri
     if (line.unitPrice == null) out.issues.push({ ref, severity: 'warn', type: 'blank_price', message: `"${product}": blank unit price` });
 
     // purchases paid directly on the row (Alibaba, Folkbella): record the payment too
-    if (payInr != null || payGbp != null) {
+    if (payInr || payGbp) {
       const vendorName = line.vendor ?? (currency === 'GBP' ? 'Alibaba (unspecified seller)' : 'Peace Enterprises');
       const payInrRaw = get('payInr');
       const amount = currency === 'INR' ? payInr : (hasPound(payInrRaw) ? payInr : payGbp ?? payInr);

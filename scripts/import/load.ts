@@ -90,10 +90,10 @@ export async function load(databaseUrl: string, parsed: Parsed, built: Built, op
 
     await insertMany(client, 'payments',
       { period_month: 'date', company_code: 'text', vendor_id: 'bigint', kind: 'payment_kind', amount: 'numeric', currency: 'currency_code',
-        amount_gbp: 'numeric', paid_on: 'date', method: 'text', paid_from: 'text', reference: 'text', confirmed: 'boolean', notes: 'text', import_ref: 'text' },
+        amount_gbp: 'numeric', paid_on: 'date', method: 'text', paid_from: 'text', paid_from_company: 'text', reference: 'text', confirmed: 'boolean', notes: 'text', import_ref: 'text' },
       parsed.payments.map((p) => ({
         period_month: p.month, company_code: p.company, vendor_id: vendorIds.get(p.vendor), kind: p.kind, amount: p.amount, currency: p.currency,
-        amount_gbp: p.amountGbp, paid_on: p.paidOn, method: p.method, paid_from: p.paidFrom, reference: p.reference, confirmed: p.confirmed,
+        amount_gbp: p.amountGbp, paid_on: p.paidOn, method: p.method, paid_from: p.paidFrom, paid_from_company: p.paidFromCompany ?? null, reference: p.reference, confirmed: p.confirmed,
         notes: p.notes, import_ref: p.ref,
       })));
 

@@ -30,6 +30,16 @@ export default async function Dashboard() {
     byCompany.set(l.company_code, c);
   }
 
+  // what each company owes Peace (its latest month with activity)
+  const companyOwed = new Map<string, number>();
+  if (canViewMoney(me)) {
+    const { data } = await supabase.from('v_reconciliation')
+      .select('company_code, closing_balance, period_month')
+      .eq('vendor_name', 'Peace Enterprises').eq('currency', 'INR').not('company_code', 'is', null)
+      .order('period_month', { ascending: false }).limit(2000);
+    for (const r of data ?? []) if (!companyOwed.has(r.company_code)) companyOwed.set(r.company_code, Number(r.closing_balance));
+  }
+
   // overall balance per supplier at the latest month each one has activity
   let owed: { vendor_name: string; currency: string; closing_balance: number; period_month: string }[] = [];
   if (canViewMoney(me)) {
@@ -61,12 +71,13 @@ export default async function Dashboard() {
       <section className="card overflow-x-auto">
         <h2 className="mb-2 font-medium">Purchases this month</h2>
         <table className="table">
-          <thead><tr><th>Company</th><th className="num">Units</th><th className="num">₹</th><th className="num">£</th></tr></thead>
+          <thead><tr><th>Company</th><th className="num">Units</th><th className="num">₹</th><th className="num">£</th>{canViewMoney(me) && <th className="num">Owes Peace</th>}</tr></thead>
           <tbody>
             {[...byCompany.entries()].sort().map(([c, v]) => (
               <tr key={c}>
                 <td>{c}</td><td className="num">{v.qty.toLocaleString('en-GB')}</td>
                 <td className="num">{money(v.inr, 'INR')}</td><td className="num">{money(v.gbp, 'GBP')}</td>
+                {canViewMoney(me) && <td className={`num ${(companyOwed.get(c) ?? 0) < 0 ? 'text-emerald-600' : ''}`}>{companyOwed.has(c) ? money(companyOwed.get(c), 'INR') : '—'}</td>}
               </tr>
             ))}
           </tbody>

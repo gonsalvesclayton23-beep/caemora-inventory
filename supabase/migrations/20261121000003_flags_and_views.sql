@@ -316,3 +316,18 @@ select m.*,
 window w_prev    as (partition by m.vendor_id, m.currency order by m.period_month
                      rows between unbounded preceding and 1 preceding),
        w_to_date as (partition by m.vendor_id, m.currency order by m.period_month);
+
+-- Which bank account paid for which company's stock. A row where the paying account is not the company's
+-- own (another company, or a personal account) is money one party owes another.
+create view v_payments_by_account with (security_invoker = true) as
+select p.period_month,
+       p.company_code                                    as paid_for,
+       coalesce(p.paid_from_company, p.paid_from, '?')   as paid_from_account,
+       p.paid_from_company is distinct from p.company_code as on_behalf,
+       p.currency,
+       count(*)                                          as payments,
+       sum(p.amount)                                     as amount,
+       sum(p.amount_gbp)                                 as amount_gbp
+  from payments p
+ where p.confirmed and can_view_money()
+ group by 1, 2, 3, 4, 5;

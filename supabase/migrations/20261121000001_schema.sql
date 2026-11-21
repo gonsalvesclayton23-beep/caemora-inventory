@@ -181,7 +181,8 @@ create table payments (
                    case when currency = 'INR' and amount_gbp > 0 then round(amount / amount_gbp, 4) end) stored,
   paid_on        date,
   method         text,                           -- Wise, Revolut, Amex, Apple Pay...
-  paid_from      text,                           -- account the money came from
+  paid_from      text,                           -- account the money came from, as written
+  paid_from_company text references companies (code),  -- whose bank account paid; null = personal/other account
   reference      text,                           -- Wise transfer no.
   confirmed      boolean not null default true,  -- false = imported "closing" row with no date/method
   notes          text,
