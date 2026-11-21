@@ -30,12 +30,18 @@ export default async function Dashboard() {
     byCompany.set(l.company_code, c);
   }
 
-  let balances: { company_code: string; closing_balance: number; unconfirmed_payments: number }[] = [];
-  if (canViewMoney(me) && month) {
-    const { data } = await supabase.from('v_reconciliation')
-      .select('company_code, closing_balance, unconfirmed_payments')
-      .eq('vendor_name', 'Peace Enterprises').eq('currency', 'INR').eq('period_month', month);
-    balances = data ?? [];
+  // overall balance per supplier at the latest month each one has activity
+  let owed: { vendor_name: string; currency: string; closing_balance: number; period_month: string }[] = [];
+  if (canViewMoney(me)) {
+    const { data } = await supabase.from('v_vendor_balance')
+      .select('vendor_name, currency, closing_balance, period_month').order('period_month', { ascending: false }).limit(2000);
+    const seen = new Set<string>();
+    for (const r of data ?? []) {
+      const k = `${r.vendor_name}|${r.currency}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      if (Math.abs(Number(r.closing_balance)) >= 1) owed.push(r);
+    }
   }
 
   return (
@@ -55,21 +61,35 @@ export default async function Dashboard() {
       <section className="card overflow-x-auto">
         <h2 className="mb-2 font-medium">Purchases this month</h2>
         <table className="table">
-          <thead><tr><th>Company</th><th className="num">Units</th><th className="num">₹</th><th className="num">£</th>{canViewMoney(me) && <th className="num">Owed to Peace</th>}</tr></thead>
+          <thead><tr><th>Company</th><th className="num">Units</th><th className="num">₹</th><th className="num">£</th></tr></thead>
           <tbody>
-            {[...byCompany.entries()].sort().map(([c, v]) => {
-              const bal = balances.find((b) => b.company_code === c);
-              return (
-                <tr key={c}>
-                  <td>{c}</td><td className="num">{v.qty.toLocaleString('en-GB')}</td>
-                  <td className="num">{money(v.inr, 'INR')}</td><td className="num">{money(v.gbp, 'GBP')}</td>
-                  {canViewMoney(me) && <td className="num">{bal ? money(bal.closing_balance, 'INR') : '—'}</td>}
-                </tr>
-              );
-            })}
+            {[...byCompany.entries()].sort().map(([c, v]) => (
+              <tr key={c}>
+                <td>{c}</td><td className="num">{v.qty.toLocaleString('en-GB')}</td>
+                <td className="num">{money(v.inr, 'INR')}</td><td className="num">{money(v.gbp, 'GBP')}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </section>
+
+      {canViewMoney(me) && (
+        <section className="card overflow-x-auto">
+          <h2 className="mb-2 font-medium">Balance owed to suppliers</h2>
+          <table className="table">
+            <thead><tr><th>Supplier</th><th>As of</th><th className="num">Owed</th></tr></thead>
+            <tbody>
+              {owed.sort((a, b) => Number(b.closing_balance) - Number(a.closing_balance)).map((o) => (
+                <tr key={`${o.vendor_name}${o.currency}`}>
+                  <td>{o.vendor_name}</td><td>{monthLabel(o.period_month)}</td>
+                  <td className={`num ${Number(o.closing_balance) < 0 ? 'text-emerald-600' : ''}`}>{money(o.closing_balance, o.currency as 'INR' | 'GBP')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-2 text-xs text-slate-500">Negative = paid in advance / in credit.</p>
+        </section>
+      )}
 
       <section className="card">
         <h2 className="mb-2 font-medium">Open flags by type</h2>

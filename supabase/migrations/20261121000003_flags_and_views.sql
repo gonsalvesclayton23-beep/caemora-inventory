@@ -158,7 +158,7 @@ begin
 
   perform set_flag('unconfirmed_payment', 'warning', t, p.id, p.period_month, p.company_code,
     not p.confirmed,
-    format('%s %s %s has no payment method or £ amount. Confirm it was actually paid.',
+    format('%s %s %s has no payment date, method or £ amount. Confirm it was actually paid.',
            p.company_code, p.kind, fmt_money(p.amount, p.currency)));
 
   perform set_flag('payment_missing_reference', 'info', t, p.id, p.period_month, p.company_code,
@@ -292,3 +292,27 @@ window w_prev    as (partition by m.vendor_id, m.company_code, m.currency order 
                      rows between unbounded preceding and 1 preceding),
        w_to_date as (partition by m.vendor_id, m.company_code, m.currency order by m.period_month);
 
+
+-- What is owed to each vendor overall, month by month. This is the main reconciliation:
+-- payments go out from whichever company account suits, so the vendor balance is what matters;
+-- v_reconciliation gives the per-company breakdown (rows with no company = vendor-level credit notes).
+create view v_vendor_balance with (security_invoker = true) as
+with monthly as (
+  select vendor_id, period_month, currency,
+         sum(purchases) as purchases, sum(credit_notes) as credit_notes,
+         sum(payments) as payments, sum(unconfirmed_payments) as unconfirmed_payments
+    from v_reconciliation
+   group by 1, 2, 3
+)
+select m.*,
+       v.name as vendor_name,
+       coalesce(sum(m.purchases - m.credit_notes - m.payments) over w_prev, 0) as opening_balance,
+       m.purchases - m.credit_notes - m.payments                            as movement,
+       sum(m.purchases - m.credit_notes - m.payments) over w_to_date        as closing_balance,
+       per.status as period_status
+  from monthly m
+  join vendors v on v.id = m.vendor_id
+  join periods per on per.month = m.period_month
+window w_prev    as (partition by m.vendor_id, m.currency order by m.period_month
+                     rows between unbounded preceding and 1 preceding),
+       w_to_date as (partition by m.vendor_id, m.currency order by m.period_month);

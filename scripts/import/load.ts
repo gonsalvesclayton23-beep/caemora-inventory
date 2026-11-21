@@ -99,7 +99,7 @@ export async function load(databaseUrl: string, parsed: Parsed, built: Built, op
 
     await insertMany(client, 'credit_notes',
       { period_month: 'date', relates_to_month: 'date', company_code: 'text', vendor_id: 'bigint', amount: 'numeric', reason: 'text', import_ref: 'text' },
-      parsed.creditNotes.filter((c) => c.company).map((c) => ({
+      parsed.creditNotes.map((c) => ({
         period_month: c.month, relates_to_month: c.relatesTo, company_code: c.company, vendor_id: peace, amount: c.amount, reason: c.reason, import_ref: c.ref,
       })));
 

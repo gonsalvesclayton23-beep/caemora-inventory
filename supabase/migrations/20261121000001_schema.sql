@@ -196,7 +196,7 @@ create table credit_notes (
   id                bigint generated always as identity primary key,
   period_month      date not null references periods (month),   -- month it is deducted in
   relates_to_month  date references periods (month),
-  company_code      text not null references companies (code),
+  company_code      text references companies (code),               -- null = applies to the vendor overall
   vendor_id         bigint not null references vendors (id),
   amount            numeric(14, 2) not null check (amount > 0),  -- positive = reduces balance due
   currency          currency_code not null default 'INR',

@@ -82,6 +82,14 @@ select expect((select closing_balance from v_reconciliation where period_month =
 select expect((select opening_balance from v_reconciliation where period_month = '2026-11-01' and company_code = 'ARC')
               = 10 * (260 + 125) - 2000, 'Nov opening = Oct closing');
 
+-- a vendor-level credit note (no company) reduces the overall vendor balance
+insert into credit_notes (period_month, company_code, vendor_id, amount, reason)
+select '2026-10-01', null, id, 100, 'Excess received' from vendors where name = 'Peace Enterprises';
+select expect((select closing_balance from v_vendor_balance where vendor_name = 'Peace Enterprises' and period_month = '2026-10-01')
+              = 10 * (260 + 125) - 2000 - 100, 'vendor balance includes company-less credit note');
+select expect((select closing_balance from v_vendor_balance where vendor_name = 'Peace Enterprises' and period_month = '2026-11-01')
+              = 10 * (260 + 125) - 2000 - 100 + 20 * (280 + 130), 'vendor balance carries forward');
+
 select settle_month('2026-10-01');
 
 -- India blocked from the settled month -----------------------------------------------

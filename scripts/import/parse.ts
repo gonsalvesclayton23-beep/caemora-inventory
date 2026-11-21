@@ -212,7 +212,7 @@ function parseMonthTab(ws: ExcelJS.Worksheet, month: string, out: Parsed, overri
       const kind = /closing/i.test(label) && !/opening/i.test(label) ? 'closing' : /opening/i.test(label) ? 'opening' : 'other';
       const paidOn = parseDate(get('payDate'), month, 'Payment date', ref, out.issues);
       const method = text(get('payMode'));
-      const confirmed = method != null || (payGbp != null && payGbp > 0);
+      const confirmed = paidOn != null || method != null || (payGbp != null && payGbp > 0);
       const refNo = Array.from({ length: productCol }, (_, i) => cellValue(row.getCell(i + 1)))
         .find((v) => typeof v === 'number' && v > 1e8);
       out.payments.push({
@@ -220,7 +220,7 @@ function parseMonthTab(ws: ExcelJS.Worksheet, month: string, out: Parsed, overri
         amountGbp: payGbp, paidOn, method, paidFrom: text(get('payFrom')),
         reference: refNo != null ? String(refNo) : null, confirmed, notes: label || null,
       });
-      if (!confirmed) out.issues.push({ ref, severity: 'warn', type: 'payment_unconfirmed', message: `${company} ${label}: ₹${amount} has no payment method or £ amount; imported as unconfirmed` });
+      if (!confirmed) out.issues.push({ ref, severity: 'warn', type: 'payment_unconfirmed', message: `${company} ${label}: ₹${amount} has no payment date, method or £ amount; imported as unconfirmed` });
       if (payInr != null && invoiceAmt != null && Math.abs(payInr + invoiceAmt) > 1) {
         out.issues.push({ ref, severity: 'warn', type: 'payment_mismatch', message: `Payment ₹${payInr} vs invoice column ${invoiceAmt}` });
       }
@@ -238,7 +238,7 @@ function parseMonthTab(ws: ExcelJS.Worksheet, month: string, out: Parsed, overri
       }
       const cnCompany = company ?? (ov.company ? companyCode(ov.company) : null);
       out.creditNotes.push({ ref, month, relatesTo: relMonth, company: cnCompany, amount: amt, reason: product });
-      if (!cnCompany) out.issues.push({ ref, severity: 'error', type: 'credit_note_no_company', message: `Credit note ₹${amt} has no company. Add it in overrides.json ("${ref}": {"company": "CMR"})` });
+      if (!cnCompany) out.issues.push({ ref, severity: 'info', type: 'credit_note_all_companies', message: `Credit note ₹${amt} has no company; applied to the vendor's overall balance` });
       continue;
     }
 

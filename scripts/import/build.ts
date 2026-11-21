@@ -95,7 +95,7 @@ export function build(parsed: Parsed, issues: Issue[]): Built {
     const fnskuCompanies = new Map<string, Set<string>>();
     for (const l of lines) if (l.fnsku) (fnskuCompanies.get(l.fnsku) ?? fnskuCompanies.set(l.fnsku, new Set()).get(l.fnsku)!).add(l.company);
     for (const [f, cs] of fnskuCompanies) if (cs.size > 1) {
-      issues.push({ ref: f, severity: 'warn', type: 'fnsku_multi_company', message: `FNSKU ${f} (${p.name}) is recorded under ${[...cs].join(', ')}. FNSKUs belong to one seller account.` });
+      issues.push({ ref: f, severity: 'info', type: 'fnsku_multi_company', message: `FNSKU ${f} (${p.name}) is sold through ${[...cs].join(', ')}` });
     }
     if (names.size > 1) {
       const toks = [...names.keys()].map(tokens);

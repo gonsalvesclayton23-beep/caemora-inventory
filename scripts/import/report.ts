@@ -50,6 +50,21 @@ export function writeReport(dir: string, parsed: Parsed, built: Built, issues: I
   const months = [...new Set(parsed.lines.map((l) => l.month))].filter((m) => m.startsWith('2026')).sort();
   const companies = ['CMR', 'ARC', 'GOE', 'YD', 'ALS', 'GEN', 'GOA'];
   const peaceLine = (l: Parsed['lines'][number]) => l.currency === 'INR' && (!l.vendor || l.vendor === 'Peace Enterprises');
+  // overall, all companies together: the real balance with Peace
+  const overall: string[] = ['| Month | Opening | Purchases | Credit notes | Paid | Unconfirmed | Closing due |', '|---|--:|--:|--:|--:|--:|--:|'];
+  {
+    let bal = 0;
+    for (const m of months) {
+      const pur = parsed.lines.filter((l) => l.month === m && peaceLine(l)).reduce((s, l) => s + ((l.unitPrice ?? 0) + l.courierPerUnit) * l.qty, 0);
+      const cn = parsed.creditNotes.filter((x) => x.month === m).reduce((s, x) => s + x.amount, 0);
+      const pays = parsed.payments.filter((p) => p.month === m && p.vendor === 'Peace Enterprises');
+      const paid = pays.filter((p) => p.confirmed).reduce((s, p) => s + p.amount, 0);
+      const unconf = pays.filter((p) => !p.confirmed).reduce((s, p) => s + p.amount, 0);
+      const open = bal;
+      bal = open + pur - cn - paid;
+      overall.push(`| ${mon(m)} | ${money(open)} | ${money(pur)} | ${cn ? money(cn) : ''} | ${money(paid)} | ${unconf ? money(unconf) : ''} | **${money(bal)}** |`);
+    }
+  }
   const recon: string[] = [];
   recon.push('| Company | Month | Opening | Purchases | Credit notes | Paid | Unconfirmed | Closing due |');
   recon.push('|---|---|--:|--:|--:|--:|--:|--:|');
@@ -111,9 +126,15 @@ Nothing has been written to a database. Review this, fix the sheet or add entrie
 
 ${tabRows.join('\n')}
 
-## Balance owed to Peace Enterprises (₹), as the app will calculate it
+## Balance owed to Peace Enterprises (₹), all companies together
 
 Purchases are ₹ lines with no other vendor. Opening = previous month's closing. Jan opening is assumed to be ₹0.
+
+${overall.join('\n')}
+
+### By company (indicative: payments are made from whichever company account suits)
+
+Credit notes with no company only appear in the overall table above.
 
 ${recon.join('\n')}
 
