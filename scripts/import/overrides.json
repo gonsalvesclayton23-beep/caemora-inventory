@@ -1,0 +1,3 @@
+{
+  "_help": "Corrections applied during import, keyed by Tab!Row from issues.csv. Any column field can be overridden (e.g. company, currency, unitPrice, qty, invNo). Use {\"skip\": true} to leave a row out."
+}
