@@ -101,6 +101,14 @@ select expect_error($$update purchase_lines set period_month = '2026-10-01' wher
 select expect_error($$select edit_with_reason('purchase_lines', (select id from purchase_lines where period_month = '2026-10-01'), '{"qty": 11}', 'typo')$$,
                     '%settled%');
 
+-- ...but goods can still be received against a settled month
+update shipments set status = 'received', received_on = '2026-11-03', received_by = 'Amazon' where amazon_shipment_id = 'FBA15TEST001';
+update purchase_lines set short_qty = 1, remarks = '1 unit missing' where period_month = '2026-10-01';
+select expect((select received_qty from purchase_lines where period_month = '2026-10-01') = 9, 'receipt recorded in settled month');
+select expect_error($$update purchase_lines set short_qty = 2, unit_price = 1 where period_month = '2026-10-01'$$, '%settled%');
+select expect_error($$update shipments set company_code = 'CMR' where amazon_shipment_id = 'FBA15TEST001'$$, '%settled%');
+update purchase_lines set short_qty = 0, remarks = null where period_month = '2026-10-01';
+
 -- Admin may edit a settled month only with a reason ------------------------------------
 select test_as('00000000-0000-0000-0000-00000000000a');
 select expect_error($$update purchase_lines set qty = 11 where period_month = '2026-10-01'$$, '%reason is required%');
@@ -126,6 +134,28 @@ select expect((select count(*) from companies) = 0, 'inactive user sees no compa
 select test_as('00000000-0000-0000-0000-00000000000b');
 update purchase_lines set invoice_no = 'PE-2' where period_month = '2026-11-01';
 select expect((select status from flags where rule = 'missing_invoice_no') = 'resolved', 'flag auto-resolves when fixed');
+
+select test_as('00000000-0000-0000-0000-00000000000a');
+select expect(acknowledge_flags_before('2026-11-01') >= 0, 'bulk acknowledge runs');
+select expect((select count(*) from flags where status = 'open' and period_month < '2026-11-01' and rule <> 'settled_month_edit') = 0,
+              'old flags acknowledged');
+select expect((select email from profiles where id = '00000000-0000-0000-0000-00000000000b') = 'india@example.test', 'email copied to profile');
+
+-- What the screens send -----------------------------------------------------------------
+-- edit form posts every field, as text/numbers/nulls, through edit_with_reason
+select edit_with_reason('purchase_lines', (select id from purchase_lines where period_month = '2026-11-01'),
+  jsonb_build_object('qty', 20, 'unit_price', 280, 'courier_per_unit', 125, 'currency', 'INR', 'invoice_no', 'PE-2', 'invoice_date', null,
+                     'company_code', 'ARC', 'vendor_id', (select id from vendors where name = 'Peace Enterprises'), 'defective_qty', 0,
+                     'short_qty', 0, 'checked_by', null, 'remarks', null), 'Courier corrected');
+select expect((select courier_per_unit from purchase_lines where period_month = '2026-11-01') = 125, 'form patch applied');
+select expect((select status from flags where rule = 'courier_above_rate_card' and entity_id = (select id from purchase_lines where period_month = '2026-11-01')) = 'resolved',
+              'rate card flag clears after correction');
+
+-- a payment for ARC made from Caemora's bank account shows as paid on another company's behalf
+insert into payments (period_month, company_code, vendor_id, kind, amount, amount_gbp, paid_on, method, reference, paid_from_company, paid_from)
+select '2026-11-01', 'ARC', id, 'closing', 1000, 8, '2026-11-20', 'Wise', 'W2', 'CMR', 'CMR' from vendors where name = 'Peace Enterprises';
+select expect((select on_behalf from v_payments_by_account where period_month = '2026-11-01' and paid_for = 'ARC' and paid_from_account = 'CMR'),
+              'on-behalf payment detected');
 
 reset role;
 select test_as(null);

@@ -48,6 +48,20 @@ Every payment records the account it came from (`paid_from_company`, null = a pe
 shows payments made on another company's behalf.
 Selling one product through several companies' accounts is normal: a product has one listing per company/FNSKU.
 
+### Screens
+
+| Screen | Who | What |
+|---|---|---|
+| Dashboard | all | Open flags, shipments in transit, this month's purchases, balance owed per company and supplier |
+| Purchases → New | admin, data entry | One invoice: company, vendor, ₹/£, invoice no., shipment/box, then products. Fills the agreed courier and last price, and warns before saving |
+| Purchases | all | Filter by month, company, text; edit a line; CSV export |
+| Shipments | all | In transit / received; mark received and enter defective/short per line (allowed after a month is settled) |
+| Products | all | Product master; admins edit the agreed courier rate and the month it applies from |
+| Flags | all (data entry: purchase & shipment flags) | Inbox; admins acknowledge or resolve |
+| Reconciliation | admin, viewer | Per supplier and month: each company's opening, purchases, credit notes, payments, closing; payments with the paying account; add payments and credit notes; settle or reopen the month |
+| Landed cost | admin, viewer | ₹ and £ per unit by product, company and month; per unit received; CSV export |
+| Admin | admin | Users and roles, flag thresholds, ₹/£ overrides, mark old flags as seen |
+
 ## Setting up (one-off)
 
 1. **Create a Supabase project** (region: London). In *SQL Editor*, run the three migration files in order, then `supabase/seed.sql`.

@@ -29,8 +29,8 @@ $$;
 create function handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  insert into profiles (id, full_name, role, active)
-  values (new.id, coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1)), 'data_entry', false)
+  insert into profiles (id, full_name, email, role, active)
+  values (new.id, coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1)), new.email, 'data_entry', false)
   on conflict (id) do nothing;
   return new;
 end $$;
@@ -49,6 +49,17 @@ begin
   return new;
 end $$;
 
+-- Columns about receiving goods, which may change after a month is settled.
+create function receipt_columns(p_table text) returns text[] language sql immutable as $$
+  select case p_table
+    when 'shipments' then array['status', 'received_on', 'received_by', 'tracking_no', 'courier', 'notes', 'updated_at']
+    -- generated totals are listed too: they are not yet computed in a BEFORE trigger, and follow from the other columns
+    when 'purchase_lines' then array['defective_qty', 'short_qty', 'received_qty', 'checked_by', 'remarks', 'remarks_2',
+                                     'amazon_case_id', 'reimbursement_id', 'reimbursed_gbp', 'updated_at', 'updated_by',
+                                     'courier_total', 'goods_total', 'line_total']
+    else array[]::text[] end
+$$;
+
 -- Block changes to settled months. Data entry: always blocked. Admin: allowed with a reason, and flagged.
 create function enforce_period_lock() returns trigger
 language plpgsql security definer set search_path = public as $$
@@ -63,6 +74,13 @@ begin
    where month in (m_old, m_new) and status = 'settled' order by month limit 1;
   if m_settled is null then
     return case when tg_op = 'DELETE' then old else new end;
+  end if;
+
+  -- Receiving goods is not a money change: shipments and receipt details stay editable after a month is settled.
+  if tg_op = 'UPDATE' and m_old = m_new and is_staff() then
+    if (to_jsonb(new) - receipt_columns(tg_table_name)) = (to_jsonb(old) - receipt_columns(tg_table_name)) then
+      return new;
+    end if;
   end if;
 
   if is_system() and coalesce(current_setting('app.bypass_lock', true), '') = 'on' then
@@ -288,3 +306,15 @@ create policy admin_read on audit_log for select to authenticated using (is_admi
 
 create policy read_own on profiles for select to authenticated using (id = auth.uid() or is_admin());
 create policy admin_update on profiles for update to authenticated using (is_admin()) with check (is_admin());
+
+-- Mark old flags as seen in bulk (e.g. everything from before the app went live).
+create function acknowledge_flags_before(p_month date, p_rule text default null) returns integer
+language plpgsql security definer set search_path = public as $$
+declare n integer;
+begin
+  if not is_admin() then raise exception 'Only an admin can do this.' using errcode = 'P0001'; end if;
+  update flags set status = 'acknowledged', updated_at = now()
+   where status = 'open' and period_month < p_month and (p_rule is null or rule = p_rule);
+  get diagnostics n = row_count;
+  return n;
+end $$;

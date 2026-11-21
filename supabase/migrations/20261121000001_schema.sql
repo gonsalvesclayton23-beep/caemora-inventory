@@ -27,6 +27,7 @@ create table companies (
 create table profiles (
   id          uuid primary key references auth.users (id) on delete cascade,
   full_name   text not null,
+  email       text,
   role        user_role not null default 'data_entry',
   active      boolean not null default true,
   created_at  timestamptz not null default now()

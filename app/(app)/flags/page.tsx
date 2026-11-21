@@ -47,7 +47,11 @@ export default async function FlagsPage({ searchParams }: { searchParams: Promis
                 {f.company_code && <span className="text-slate-500">{f.company_code}</span>}
                 {f.period_month && <span className="text-slate-500">{monthLabel(f.period_month)}</span>}
               </div>
-              <p className="mt-1 text-sm">{f.message}</p>
+              <p className="mt-1 text-sm">
+                {f.entity_type === 'purchase_lines' || f.entity_type === 'shipments'
+                  ? <Link href={`/${f.entity_type === 'purchase_lines' ? 'purchases' : 'shipments'}/${f.entity_id}`} className="hover:underline">{f.message}</Link>
+                  : f.message}
+              </p>
             </div>
             {isAdmin(me) && f.status !== 'resolved' && (
               <form action={setFlagStatus} className="flex shrink-0 gap-2">
