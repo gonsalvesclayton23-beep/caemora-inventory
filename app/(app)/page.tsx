@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { canViewMoney, getProfile } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { money, monthLabel, RULE_LABELS } from '@/lib/format';
-import { monthStart, money2 } from '@/lib/time';
+import { monthStart, money2 } from '@/lib/tz';
 import { Clocks } from '@/components/Clocks';
 import { UnitsChart } from '@/components/UnitsChart';
 

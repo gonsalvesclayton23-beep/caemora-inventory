@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { clockParts, INDIA_TZ, UK_TZ } from '@/lib/time';
+import { clockParts, INDIA_TZ, UK_TZ } from '@/lib/tz';
 
 /** DSH-03: live UK and India clocks, from the time zones rather than the device's clock. */
 export function Clocks() {
