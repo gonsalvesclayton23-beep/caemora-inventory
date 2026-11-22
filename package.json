@@ -12,7 +12,8 @@
     "import:load": "tsx scripts/import/run.ts --load",
     "import:sql": "tsx scripts/import/run.ts --sql",
     "setup:sql": "bash scripts/build-setup-sql.sh",
-    "db:test": "bash supabase/tests/run.sh"
+    "db:test": "bash supabase/tests/run.sh",
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

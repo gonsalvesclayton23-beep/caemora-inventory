@@ -1,4 +1,5 @@
-import { firstOfMonth, getSettings, referenceData } from '@/lib/data';
+import { getSettings, referenceData } from '@/lib/data';
+import { monthStart, UK_TZ } from '@/lib/time';
 import { createClient } from '@/lib/supabase/server';
 import PurchaseForm from './PurchaseForm';
 
@@ -21,7 +22,8 @@ export default async function NewPurchasePage({ searchParams }: { searchParams: 
   }
 
   // current month first, plus any open months; settled months are listed so admins can add to them
-  const current = firstOfMonth();
+  const current = monthStart(new Date());
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: UK_TZ }).format(new Date());
   const months = periods.some((p) => p.month === current) ? periods : [{ month: current, status: 'open' as const }, ...periods];
 
   return (
@@ -32,6 +34,7 @@ export default async function NewPurchasePage({ searchParams }: { searchParams: 
         vendors={vendors}
         months={months}
         defaultMonth={current}
+        today={today}
         thresholds={thresholds}
         initialShipment={chosen ? { id: chosen.id, company_code: chosen.company_code } : undefined}
         shipments={(shipments ?? []).map((s) => ({

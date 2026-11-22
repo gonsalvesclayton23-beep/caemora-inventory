@@ -1,13 +1,15 @@
 'use client';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { createProduct, savePurchase, searchProducts, type ProductHit, type PurchaseInput } from '../actions';
-import { money } from '@/lib/format';
+import { money, monthLabel } from '@/lib/format';
+import { uploadInvoiceFile, type UploadedFile } from '@/lib/invoiceUpload';
 
 interface Props {
   companies: { code: string; name: string }[];
   vendors: { id: number; name: string; default_currency: 'INR' | 'GBP' }[];
   months: { month: string; status: string }[];
   defaultMonth: string;
+  today: string;
   shipments: { id: number; company_code: string | null; label: string }[];
   thresholds: { priceChangePct: number; suspectInrBelow: number; rateTolerancePct: number };
   initialShipment?: { id: number; company_code: string | null };
@@ -46,12 +48,16 @@ export default function PurchaseForm(props: Props) {
   const { companies, vendors, months, shipments, thresholds } = props;
   const peace = vendors.find((v) => v.name === 'Peace Enterprises') ?? vendors[0];
 
-  const [month, setMonth] = useState(props.defaultMonth);
+
   const [company, setCompany] = useState(props.initialShipment?.company_code ?? companies[0]?.code ?? '');
   const [vendorId, setVendorId] = useState<number>(peace?.id ?? 0);
   const [currency, setCurrency] = useState<'INR' | 'GBP'>(peace?.default_currency ?? 'INR');
   const [invoiceNo, setInvoiceNo] = useState('');
-  const [invoiceDate, setInvoiceDate] = useState('');
+  const [invoiceDate, setInvoiceDate] = useState(props.today);
+  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+  const [uploaded, setUploaded] = useState<UploadedFile | null>(null);
+  // INV-01: the purchase is filed in its invoice's month
+  const month = invoiceDate ? `${invoiceDate.slice(0, 7)}-01` : '';
   const [shipMode, setShipMode] = useState<'new' | 'existing' | 'none'>(props.initialShipment ? 'existing' : 'new');
   const [shipId, setShipId] = useState<number | ''>(props.initialShipment?.id ?? '');
   const [ship, setShip] = useState({ boxNo: '', amazonShipmentId: '', trackingNo: '', courier: '', createdOn: '' });
@@ -86,6 +92,7 @@ export default function PurchaseForm(props: Props) {
 
   function submit() {
     setError(null);
+    if (!invoiceDate) { setError('Enter the invoice date.'); return; }
     const input: PurchaseInput = {
       month, company, vendorId, currency, invoiceNo, invoiceDate,
       shipment: shipMode === 'new' ? { mode: 'new', ...ship } : shipMode === 'existing' && shipId ? { mode: 'existing', id: Number(shipId) } : { mode: 'none' },
@@ -95,19 +102,24 @@ export default function PurchaseForm(props: Props) {
       })),
     };
     start(async () => {
-      const res = await savePurchase(input);
-      if (res?.error) setError(res.error);
+      try {
+        // INV-02: upload the invoice first (once), then save the purchase with it
+        let file = uploaded;
+        if (invoiceFile && !file) {
+          file = await uploadInvoiceFile(invoiceFile, company, invoiceDate);
+          setUploaded(file);
+        }
+        const res = await savePurchase({ ...input, invoiceFile: file });
+        if (res?.error) setError(res.error);
+      } catch (err) {
+        setError((err as Error).message);
+      }
     });
   }
 
   return (
     <div className="space-y-4">
       <section className="card grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Field label="Month">
-          <select className="input" value={month} onChange={(e) => setMonth(e.target.value)}>
-            {months.map((m) => <option key={m.month} value={m.month}>{new Date(m.month + 'T00:00:00Z').toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' })}{m.status === 'settled' ? ' (settled)' : ''}</option>)}
-          </select>
-        </Field>
         <Field label="Company">
           <select className="input" value={company} onChange={(e) => setCompany(e.target.value)}>
             {companies.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
@@ -129,7 +141,15 @@ export default function PurchaseForm(props: Props) {
           <input className="input" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} placeholder="e.g. PE-131" />
           {!invoiceNo.trim() && <p className="mt-1 text-xs text-amber-600">No invoice number: this will be flagged.</p>}
         </Field>
-        <Field label="Invoice date"><input className="input" type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></Field>
+        <Field label="Invoice date *">
+          <input className="input" type="date" required value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
+          <p className="mt-1 text-xs text-slate-500">{month ? `Filed under ${monthLabel(month)}` : 'Required'}</p>
+        </Field>
+        <Field label="Invoice file (PDF or photo)">
+          <input className="input py-1.5 text-sm" type="file" accept="application/pdf,image/*"
+            onChange={(e) => { setInvoiceFile(e.target.files?.[0] ?? null); setUploaded(null); }} />
+          <p className="mt-1 text-xs text-slate-500">{uploaded ? 'Uploaded.' : invoiceFile ? `${invoiceFile.name} will be uploaded on save` : 'Optional now; can be added later under Invoices'}</p>
+        </Field>
       </section>
       {settled && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-200">This month is settled. Only an admin can add to it.</p>}
 
