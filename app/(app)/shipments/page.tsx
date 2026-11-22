@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Filters } from '@/components/Filters';
 import { referenceData } from '@/lib/data';
+import { getProfile } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { dateLabel, monthLabel } from '@/lib/format';
 
@@ -20,6 +21,7 @@ const STATUS_STYLE: Record<string, string> = {
 
 export default async function ShipmentsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
+  const me = await getProfile();
   const { companies, periods } = await referenceData();
   const status = sp.status ?? 'in_transit';
   const supabase = await createClient();
@@ -36,7 +38,10 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Shipments</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-2xl font-semibold">Shipments</h1>
+        {me.role !== 'viewer' && <Link href="/shipments/new" className="btn">+ New shipment</Link>}
+      </div>
       <div className="flex flex-wrap gap-2 text-sm">
         {['in_transit', 'received_partial', 'received', 'lost', 'all'].map((s) => (
           <Link key={s} href={`/shipments?${new URLSearchParams({ ...(sp as Record<string, string>), status: s })}`}

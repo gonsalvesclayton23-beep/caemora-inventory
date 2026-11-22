@@ -76,7 +76,7 @@ Live at caemora-inventory.vercel.app (Vercel + Supabase, London). Data imported 
 
 ## Requirements
 
-28 requirements across 8 areas: 25 are built in the first release, 3 are proposed. Details and ACs follow the index.
+29 requirements across 8 areas: 26 are built, 3 are proposed. Details and ACs follow the index.
 
 | ID | Requirement | Who | Status |
 | --- | --- | --- | --- |
@@ -96,6 +96,7 @@ Live at caemora-inventory.vercel.app (Vercel + Supabase, London). Data imported 
 | SHP-03 | Allow receipts after a month is settled | Data entry | Built |
 | SHP-04 | Flag shipments in transit too long | All | Built |
 | SHP-05 | Track Amazon claims and reimbursements | Data entry, Admin | Proposed |
+| SHP-06 | Create a shipment on its own, then add purchases to it | Data entry | Built |
 | LC-01 | Landed cost per unit in ₹ and £ | Admin, Viewer | Built |
 | LC-02 | Landed cost per unit actually received | Admin, Viewer | Built |
 | LC-03 | Monthly ₹/£ rate from Wise payments | Admin | Built |
@@ -358,6 +359,28 @@ AC1  Given 26 units of Colgate Zig Zag were missing (case 12151530462)
      Then  the line shows the case as reimbursed
 AC2  Given lines with a case ID but no reimbursement after 30 days
      Then  they appear in an "Open claims" list
+```
+
+```
+SHP-06  Create a shipment on its own, then add purchases to it
+As the India team
+I want to create a shipment or box before entering what is in it
+So that I can record the Amazon shipment ID and tracking as soon as the box is packed
+
+AC1  Given I am on Shipments
+     When  I press "+ New shipment" and enter ARC, box 3, FBA15MRYZWHR, tracking 15509743236023, 27 Oct 2026
+     Then  the shipment is created as "In transit" and its page opens, showing 0 products
+AC2  Given that new shipment
+     When  I press "Add purchase to this shipment"
+     Then  New purchase opens with this shipment already chosen and company set to ARC
+AC3  Given shipment FBA15MRYZWHR box 3 already exists
+     When  I try to create it again
+     Then  the app refuses and links to the existing one
+AC4  Given I am a Viewer
+     Then  I do not see "+ New shipment"
+AC5  Given October is settled and I am data entry
+     When  I try to create a shipment in October
+     Then  the app refuses: "October 2026 is settled. Ask an admin."
 ```
 
 ### Landed cost (LC)

@@ -10,6 +10,7 @@ interface Props {
   defaultMonth: string;
   shipments: { id: number; company_code: string | null; label: string }[];
   thresholds: { priceChangePct: number; suspectInrBelow: number; rateTolerancePct: number };
+  initialShipment?: { id: number; company_code: string | null };
 }
 
 interface Line {
@@ -46,13 +47,13 @@ export default function PurchaseForm(props: Props) {
   const peace = vendors.find((v) => v.name === 'Peace Enterprises') ?? vendors[0];
 
   const [month, setMonth] = useState(props.defaultMonth);
-  const [company, setCompany] = useState(companies[0]?.code ?? '');
+  const [company, setCompany] = useState(props.initialShipment?.company_code ?? companies[0]?.code ?? '');
   const [vendorId, setVendorId] = useState<number>(peace?.id ?? 0);
   const [currency, setCurrency] = useState<'INR' | 'GBP'>(peace?.default_currency ?? 'INR');
   const [invoiceNo, setInvoiceNo] = useState('');
   const [invoiceDate, setInvoiceDate] = useState('');
-  const [shipMode, setShipMode] = useState<'new' | 'existing' | 'none'>('new');
-  const [shipId, setShipId] = useState<number | ''>('');
+  const [shipMode, setShipMode] = useState<'new' | 'existing' | 'none'>(props.initialShipment ? 'existing' : 'new');
+  const [shipId, setShipId] = useState<number | ''>(props.initialShipment?.id ?? '');
   const [ship, setShip] = useState({ boxNo: '', amazonShipmentId: '', trackingNo: '', courier: '', createdOn: '' });
   const [lines, setLines] = useState<Line[]>([]);
   const [error, setError] = useState<string | null>(null);

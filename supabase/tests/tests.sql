@@ -98,6 +98,8 @@ select expect_error($$update purchase_lines set qty = 11 where period_month = '2
 select expect_error($$insert into purchase_lines (period_month, product_id, company_code, vendor_id, qty, unit_price)
                       select '2026-10-01', p.id, 'ARC', v.id, 1, 1 from products p, vendors v limit 1$$, '%settled%');
 select expect_error($$update purchase_lines set period_month = '2026-10-01' where period_month = '2026-11-01'$$, '%settled%');
+-- SHP-06 AC5: no new shipment in a settled month
+select expect_error($$insert into shipments (period_month, company_code, box_no) values ('2026-10-15', 'ARC', '9')$$, '%October 2026 is settled%');
 select expect_error($$select edit_with_reason('purchase_lines', (select id from purchase_lines where period_month = '2026-10-01'), '{"qty": 11}', 'typo')$$,
                     '%settled%');
 
