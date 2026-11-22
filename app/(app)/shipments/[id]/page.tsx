@@ -7,8 +7,9 @@ import ReceiveForm from './ReceiveForm';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ShipmentPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ShipmentPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string }> }) {
   const { id } = await params;
+  const { created } = await searchParams;
   const me = await getProfile();
   const supabase = await createClient();
   const [{ data: s }, { data: lines }] = await Promise.all([
@@ -28,6 +29,11 @@ export default async function ShipmentPage({ params }: { params: Promise<{ id: s
           {s.uk_shipment_id && ` · ${s.uk_shipment_id}`}{s.import_ref && ` · imported`}
         </p>
       </header>
+      {created && <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Shipment created. Now add the purchases that are in it.</p>}
+      {me.role !== 'viewer' && (
+        <Link href={`/purchases/new?shipment=${s.id}`} className="btn">+ Add purchase to this shipment</Link>
+      )}
+      {!lines?.length && <p className="text-sm text-slate-500">No products in this shipment yet.</p>}
       <ReceiveForm shipment={s} lines={lines ?? []} canEdit={me.role !== 'viewer'} />
     </div>
   );

@@ -76,7 +76,7 @@ Live at caemora-inventory.vercel.app (Vercel + Supabase, London). Data imported 
 
 ## Requirements
 
-28 requirements across 8 areas: 25 are built in the first release, 3 are proposed. Details and ACs follow the index.
+35 requirements across 10 areas: 32 are built, 3 are proposed. Details and ACs follow the index.
 
 | ID | Requirement | Who | Status |
 | --- | --- | --- | --- |
@@ -96,6 +96,7 @@ Live at caemora-inventory.vercel.app (Vercel + Supabase, London). Data imported 
 | SHP-03 | Allow receipts after a month is settled | Data entry | Built |
 | SHP-04 | Flag shipments in transit too long | All | Built |
 | SHP-05 | Track Amazon claims and reimbursements | Data entry, Admin | Proposed |
+| SHP-06 | Create a shipment on its own, then add purchases to it | Data entry | Built |
 | LC-01 | Landed cost per unit in ₹ and £ | Admin, Viewer | Built |
 | LC-02 | Landed cost per unit actually received | Admin, Viewer | Built |
 | LC-03 | Monthly ₹/£ rate from Wise payments | Admin | Built |
@@ -108,6 +109,12 @@ Live at caemora-inventory.vercel.app (Vercel + Supabase, London). Data imported 
 | ACC-01 | Logins, roles and activation | Admin | Built |
 | ACC-02 | Change my password | All | Built |
 | IMP-01 | Import MIT-2026.xlsx with totals checked | Admin | Built |
+| DSH-01 | Monthly units ordered chart | All | Built |
+| DSH-02 | Amount spent by currency (INR and GBP) | All | Built |
+| DSH-03 | India and UK clocks | All | Built |
+| INV-01 | Invoice date required; it sets the purchase month | Data entry | Built |
+| INV-02 | Upload the invoice file when entering a purchase | Data entry | Built |
+| INV-03 | Invoices page: missing files and missing invoice details | All | Built |
 
 ### Products (PRD)
 
@@ -360,6 +367,28 @@ AC2  Given lines with a case ID but no reimbursement after 30 days
      Then  they appear in an "Open claims" list
 ```
 
+```
+SHP-06  Create a shipment on its own, then add purchases to it
+As the India team
+I want to create a shipment or box before entering what is in it
+So that I can record the Amazon shipment ID and tracking as soon as the box is packed
+
+AC1  Given I am on Shipments
+     When  I press "+ New shipment" and enter ARC, box 3, FBA15MRYZWHR, tracking 15509743236023, 27 Oct 2026
+     Then  the shipment is created as "In transit" and its page opens, showing 0 products
+AC2  Given that new shipment
+     When  I press "Add purchase to this shipment"
+     Then  New purchase opens with this shipment already chosen and company set to ARC
+AC3  Given shipment FBA15MRYZWHR box 3 already exists
+     When  I try to create it again
+     Then  the app refuses and links to the existing one
+AC4  Given I am a Viewer
+     Then  I do not see "+ New shipment"
+AC5  Given October is settled and I am data entry
+     When  I try to create a shipment in October
+     Then  the app refuses: "October 2026 is settled. Ask an admin."
+```
+
 ### Landed cost (LC)
 
 ```
@@ -532,6 +561,116 @@ AC3  Given the import has already run
      Then  it refuses ("Purchases already exist")
 ```
 
+### Dashboard (DSH)
+
+Uses the purchases already in the app. The order date is the **invoice date** (INV-01); older imported lines without one count in their spreadsheet month until it is added. Months are calendar months in Europe/London time. All monthly figures come from one database function, `dashboard_monthly`.
+
+```
+DSH-01  Monthly units ordered chart
+As the business owner
+I want a graph of the total units ordered each month
+So that I can see how much stock is being ordered month by month across the business
+
+AC1  A bar chart, one bar per calendar month (x = month, e.g. "Jan 2026"; y = units)
+AC2  Each bar = quantity ordered across ALL companies and ALL suppliers that month
+     (stock only: packaging and stationery are not units of stock)
+AC3  A purchase counts in the month of its order (invoice) date
+AC4  Default view: the last 12 months including the current month
+AC5  Months with no orders show 0; no gaps
+AC6  Hovering or tapping a bar shows the month and the exact unit total
+AC7  The chart reflects purchases as they are added, edited or deleted (on the next page load)
+AC8  With no data at all: "No orders recorded yet"
+```
+
+```
+DSH-02  Amount spent by currency (INR and GBP)
+As the business owner
+I want the amount spent in rupees and in pounds on the dashboard
+So that I track India and China spend separately
+
+AC1  Two tiles near the top: Spent (INR) with ₹ and Spent (GBP) with £
+AC2  Based on the currency recorded on each purchase, not the supplier's country
+AC3  The two currencies are never added together or converted
+AC4  Totals include all companies
+AC5  Each tile shows this month's total, with last month underneath for comparison
+AC6  Thousands separators and 2 decimals: £12,345.67, ₹1,23,456.00 (Indian grouping)
+AC7  A monthly table of units, ₹ and £ under the chart, same months as DSH-01
+AC8  Purchases with no currency are excluded and counted ("3 purchases missing currency");
+     the app requires a currency, so this normally never shows
+```
+
+```
+DSH-03  India and UK clocks
+As the business owner working with a partner in India
+I want the current UK and India time on the dashboard
+So that I know the time for my partner before I call, message or pay
+
+AC1  Two clocks side by side in the dashboard header: UK and India
+AC2  Each shows HH:MM (24-hour) and day and date, e.g. "Sun 22 Nov"
+AC3  UK uses Europe/London and switches between GMT and BST automatically
+AC4  India uses Asia/Kolkata (IST, UTC+5:30, no daylight saving)
+AC5  The clocks update at least once a minute without refreshing
+AC6  Times come from the time zones, not the device clock, so they are right in India too
+AC7  When the dates differ (late evening in the UK), each clock shows its own date
+```
+
+Out of scope for now: filtering the dashboard by company or supplier, converting to a single currency, exporting the chart.
+
+### Invoices (INV)
+
+```
+INV-01  Invoice date required; it sets the purchase month
+As the UK admin
+I want every purchase to carry its invoice date
+So that orders are dated by the invoice, not by a spreadsheet tab
+
+AC1  Given I enter a new purchase
+     When  the invoice date is empty
+     Then  it cannot be saved: "Enter the invoice date."
+AC2  Given the invoice date is 28 Nov 2026
+     Then  the purchase is filed under November 2026 (no separate month to choose)
+AC3  Given the invoice date falls in a settled month and I am data entry
+     Then  the app refuses: "<Month> is settled"
+AC4  Given a line has an invoice date
+     When  someone tries to clear it
+     Then  the app refuses: "The invoice date cannot be removed."
+AC5  Given an imported line has no invoice date
+     Then  it is flagged "Missing invoice date" until one is added
+```
+
+```
+INV-02  Upload the invoice file when entering a purchase
+As the India team
+I want to attach the invoice PDF or a photo of it to the purchase
+So that every purchase has its proof
+
+AC1  Given I am entering a purchase
+     When  I choose a PDF or photo (JPG, PNG, WEBP, HEIC) up to 10 MB
+     Then  it is uploaded on save and linked to that invoice no., vendor and company
+AC2  Given the file is not a PDF or image, or is over 10 MB
+     Then  I see why it was refused, and nothing is saved
+AC3  Given no file is chosen
+     Then  the purchase still saves; the invoice shows as "No file yet"
+```
+
+```
+INV-03  Invoices page
+As the UK admin
+I want one place to see every invoice and what is missing
+So that I can chase missing paperwork
+
+AC1  Given invoices exist
+     Then  "No file yet" lists each invoice (no., vendor, company, date, lines, units, ₹/£ total) without a file
+AC2  When  I press "Upload invoice" on one and pick a file
+     Then  it is attached and the invoice leaves the "No file yet" list
+AC3  Given an invoice has a file
+     When  I press its file name
+     Then  it opens through a private, short-lived link (files are never public)
+AC4  The page shows how many purchase lines have no invoice date or number,
+     each linking to the purchases to fix
+AC5  A Viewer can open files but cannot upload
+```
+
 ## Non-functional requirements
 
 These apply to every screen and are checked on each release.
@@ -584,6 +723,8 @@ Ideas not yet written as full requirements. Move one into Requirements (with an 
 | 21 Nov 2026 | Landed cost per unit bought; £ at each month's actual Wise rate; price-change flag at 5% |
 | 21 Nov 2026 | India team cannot see payments or reconciliation |
 | 21 Nov 2026 | Receipts can be recorded after a month is settled; money fields stay locked |
+| 22 Nov 2026 | Stop following the spreadsheet's month tabs: the invoice date is the order date and sets the purchase month |
+| 22 Nov 2026 | Every purchase needs an invoice date; invoice files are uploaded in the app |
 
 **Glossary**
 
@@ -596,4 +737,5 @@ Ideas not yet written as full requirements. Move one into Requirements (with an 
 | Rate card | The agreed courier charge per unit for a product |
 | Settled month | A month that is paid and checked; its money can no longer be changed by data entry |
 | Flag | An automatic warning about a possible mistake |
+| Order date | The invoice date of a purchase |
 | AC | Acceptance criterion: a Given / When / Then check that proves a requirement works |

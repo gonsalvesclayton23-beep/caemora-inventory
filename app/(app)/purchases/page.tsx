@@ -12,7 +12,7 @@ type SP = Record<string, string | undefined>;
 export default async function PurchasesPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const { companies, periods } = await referenceData();
-  const month = sp.month ?? (sp.q ? undefined : periods[0]?.month);
+  const month = sp.month ?? (sp.q || sp.missing ? undefined : periods[0]?.month);
   const { data: lines, error } = await queryLines({ ...sp, month });
 
   const totals = new Map<string, number>();
@@ -29,7 +29,8 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
         </div>
       </div>
       {sp.saved && <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Saved {sp.saved} line{sp.saved === '1' ? '' : 's'}.</p>}
-      <Filters periods={periods} companies={companies} values={{ ...sp, month }} search />
+      {sp.missing && <p className="text-sm text-amber-700">Showing lines without an invoice {sp.missing === 'date' ? 'date' : 'number'}. Open a line to add it. <a className="underline" href="/purchases">Clear</a></p>}
+      <Filters periods={periods} companies={companies} values={{ ...sp, month }} search extra={sp.missing ? <input type="hidden" name="missing" value={sp.missing} /> : undefined} />
       {error && <p className="text-red-600">{error.message}</p>}
 
       <p className="text-sm text-slate-500">

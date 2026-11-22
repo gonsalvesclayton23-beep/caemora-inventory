@@ -21,6 +21,7 @@ export const RULE_LABELS: Record<string, string> = {
   courier_above_price: 'Courier > product price',
   courier_above_rate_card: 'Courier above rate card',
   missing_invoice_no: 'Missing invoice no.',
+  missing_invoice_date: 'Missing invoice date',
   blank_price: 'Blank price',
   suspect_currency: 'Looks like £ entered as ₹',
   receipt_discrepancy: 'Short/defective, no remark',

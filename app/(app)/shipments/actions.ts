@@ -1,5 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { friendlyError, type Result } from '@/lib/data';
 
@@ -39,4 +40,36 @@ export async function saveShipment(_: unknown, form: FormData): Promise<Result> 
   revalidatePath(`/shipments/${id}`);
   revalidatePath('/');
   return { ok: true, status };
+}
+
+/** SHP-06: create a shipment on its own, before any purchase is entered into it. */
+export async function createShipment(_: unknown, form: FormData): Promise<Result> {
+  const supabase = await createClient();
+  const s = (k: string) => { const v = String(form.get(k) ?? '').trim(); return v === '' ? null : v; };
+  const company = s('company_code');
+  const month = s('period_month');
+  if (!company) return { error: 'Choose a company.' };
+  if (!month) return { error: 'Choose a month.' };
+  const amazonId = s('amazon_shipment_id')?.toUpperCase() ?? null;
+  const boxNo = s('box_no');
+  if (!amazonId && !boxNo && !s('tracking_no')) return { error: 'Enter at least a box no., Amazon shipment ID or tracking no.' };
+
+  // AC3: the same Amazon shipment and box must not be created twice
+  if (amazonId) {
+    let q = supabase.from('shipments').select('id').eq('amazon_shipment_id', amazonId).limit(1);
+    q = boxNo ? q.eq('box_no', boxNo) : q.is('box_no', null);
+    const { data: existing } = await q;
+    if (existing?.length) {
+      return { error: `Shipment ${amazonId}${boxNo ? ` box ${boxNo}` : ''} already exists.`, status: `existing:${existing[0].id}` };
+    }
+  }
+
+  const { data, error } = await supabase.from('shipments').insert({
+    period_month: month, company_code: company, channel: s('channel') ?? (amazonId ? 'FBA' : 'FBM'),
+    box_no: boxNo, amazon_shipment_id: amazonId, tracking_no: s('tracking_no'), courier: s('courier'),
+    created_on: s('created_on'), notes: s('notes'), status: 'in_transit',
+  }).select('id').single();
+  if (error) return { error: friendlyError(error) };
+  revalidatePath('/shipments');
+  redirect(`/shipments/${data.id}?created=1`);
 }

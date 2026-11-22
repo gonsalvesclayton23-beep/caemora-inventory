@@ -24,6 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: '/', label: 'Dashboard', show: true },
     { href: '/purchases', label: 'Purchases', show: true },
     { href: '/shipments', label: 'Shipments', show: true },
+    { href: '/invoices', label: 'Invoices', show: true },
     { href: '/products', label: 'Products', show: true },
     { href: '/flags', label: 'Flags', show: true },
     { href: '/reconciliation', label: 'Reconciliation', show: canViewMoney(me) },

@@ -46,13 +46,18 @@ values ('2026-10-15', 'ARC', 'FBA', 'FBA15TEST001', 'TRK1', '2026-10-15');
 select expect((select period_month from shipments where amazon_shipment_id = 'FBA15TEST001') = '2026-10-01',
               'period_month normalised to the 1st');
 
-insert into purchase_lines (period_month, shipment_id, product_id, company_code, vendor_id, qty, unit_price, courier_per_unit, invoice_no)
-select '2026-10-01', s.id, p.id, 'ARC', v.id, 10, 260, 125, 'PE-1'
+insert into purchase_lines (period_month, shipment_id, product_id, company_code, vendor_id, qty, unit_price, courier_per_unit, invoice_no, invoice_date)
+select '2026-10-01', s.id, p.id, 'ARC', v.id, 10, 260, 125, 'PE-1', '2026-10-15'
   from shipments s, products p, vendors v
  where s.amazon_shipment_id = 'FBA15TEST001' and p.name = 'Test ENO Regular 30s' and v.name = 'Peace Enterprises';
 
-insert into purchase_lines (period_month, product_id, company_code, vendor_id, qty, unit_price, courier_per_unit)
-select '2026-11-01', p.id, 'ARC', v.id, 20, 280, 130
+-- INV-01: no invoice date, no purchase
+select expect_error($$insert into purchase_lines (period_month, product_id, company_code, vendor_id, qty, unit_price)
+                      select '2026-11-01', p.id, 'ARC', v.id, 1, 1 from products p, vendors v limit 1$$, '%Enter the invoice date%');
+
+-- INV-01: the month follows the invoice date, whatever month was sent
+insert into purchase_lines (period_month, product_id, company_code, vendor_id, qty, unit_price, courier_per_unit, invoice_date)
+select '2026-10-01', p.id, 'ARC', v.id, 20, 280, 130, '2026-11-10'
   from products p, vendors v where p.name = 'Test ENO Regular 30s' and v.name = 'Peace Enterprises';
 
 select expect((select line_total from purchase_lines where period_month = '2026-11-01') = 20 * (280 + 130), 'line total');
@@ -96,8 +101,12 @@ select settle_month('2026-10-01');
 select test_as('00000000-0000-0000-0000-00000000000b');
 select expect_error($$update purchase_lines set qty = 11 where period_month = '2026-10-01'$$, '%October 2026 is settled%');
 select expect_error($$insert into purchase_lines (period_month, product_id, company_code, vendor_id, qty, unit_price)
-                      select '2026-10-01', p.id, 'ARC', v.id, 1, 1 from products p, vendors v limit 1$$, '%settled%');
+                      select '2026-10-01', p.id, 'ARC', v.id, 1, 1 from products p, vendors v limit 1$$, '%Enter the invoice date%');
+select expect_error($$insert into purchase_lines (period_month, product_id, company_code, vendor_id, qty, unit_price, invoice_date)
+                      select '2026-11-01', p.id, 'ARC', v.id, 1, 1, '2026-10-20' from products p, vendors v limit 1$$, '%October 2026 is settled%');
 select expect_error($$update purchase_lines set period_month = '2026-10-01' where period_month = '2026-11-01'$$, '%settled%');
+-- SHP-06 AC5: no new shipment in a settled month
+select expect_error($$insert into shipments (period_month, company_code, box_no) values ('2026-10-15', 'ARC', '9')$$, '%October 2026 is settled%');
 select expect_error($$select edit_with_reason('purchase_lines', (select id from purchase_lines where period_month = '2026-10-01'), '{"qty": 11}', 'typo')$$,
                     '%settled%');
 
@@ -144,7 +153,7 @@ select expect((select email from profiles where id = '00000000-0000-0000-0000-00
 -- What the screens send -----------------------------------------------------------------
 -- edit form posts every field, as text/numbers/nulls, through edit_with_reason
 select edit_with_reason('purchase_lines', (select id from purchase_lines where period_month = '2026-11-01'),
-  jsonb_build_object('qty', 20, 'unit_price', 280, 'courier_per_unit', 125, 'currency', 'INR', 'invoice_no', 'PE-2', 'invoice_date', null,
+  jsonb_build_object('qty', 20, 'unit_price', 280, 'courier_per_unit', 125, 'currency', 'INR', 'invoice_no', 'PE-2', 'invoice_date', '2026-11-10',
                      'company_code', 'ARC', 'vendor_id', (select id from vendors where name = 'Peace Enterprises'), 'defective_qty', 0,
                      'short_qty', 0, 'checked_by', null, 'remarks', null), 'Courier corrected');
 select expect((select courier_per_unit from purchase_lines where period_month = '2026-11-01') = 125, 'form patch applied');
@@ -156,6 +165,33 @@ insert into payments (period_month, company_code, vendor_id, kind, amount, amoun
 select '2026-11-01', 'ARC', id, 'closing', 1000, 8, '2026-11-20', 'Wise', 'W2', 'CMR', 'CMR' from vendors where name = 'Peace Enterprises';
 select expect((select on_behalf from v_payments_by_account where period_month = '2026-11-01' and paid_for = 'ARC' and paid_from_account = 'CMR'),
               'on-behalf payment detected');
+
+-- DSH-01 / DSH-02: monthly aggregation, zero-filled months, currencies kept apart
+select test_as('00000000-0000-0000-0000-00000000000a');
+insert into purchase_lines (period_month, product_id, company_code, vendor_id, qty, unit_price, currency, courier_per_unit, invoice_no, invoice_date)
+select '2026-11-01', p.id, 'CMR', v.id, 5, 2.50, 'GBP', 0.50, 'ALI-1', '2026-11-12'
+  from products p, vendors v where p.name = 'Test ENO Regular 30s' and v.name = 'Alibaba (unspecified seller)';
+select expect((select count(*) from dashboard_monthly(12, '2026-11-15')) = 12, '12 months returned');
+select expect((select min(month) from dashboard_monthly(12, '2026-11-15')) = '2025-12-01', 'window ends at the given month');
+select expect((select units from dashboard_monthly(12, '2026-11-15') where month = '2026-03-01') = 0, 'empty month filled with 0');
+select expect((select units from dashboard_monthly(12, '2026-11-15') where month = '2026-11-01') = 20 + 5, 'units across companies and suppliers');
+select expect((select spend_inr from dashboard_monthly(12, '2026-11-15') where month = '2026-11-01') = 20 * (280 + 125), 'INR spend only INR lines');
+select expect((select spend_gbp from dashboard_monthly(12, '2026-11-15') where month = '2026-11-01') = 5 * 3.00, 'GBP spend only GBP lines');
+select expect((select spend_inr from dashboard_monthly(12, '2026-11-15') where month = '2026-10-01') = 11 * (260 + 125), 'previous month');
+select expect((select sum(missing_currency) from dashboard_monthly(12, '2026-11-15')) = 0, 'no purchase lacks a currency');
+select expect((select count(*) from dashboard_monthly(1, '2026-11-15')) = 1, 'single month window');
+select expect((select period_month from purchase_lines where invoice_no = 'ALI-1') = '2026-11-01', 'filed in invoice month');
+
+-- INV-02/03: invoice files and the invoice list
+insert into invoice_files (company_code, vendor_id, invoice_no, invoice_date, storage_path, file_name)
+select 'CMR', id, 'ALI-1', '2026-11-12', 'CMR/2026-11/test.pdf', 'test.pdf' from vendors where name = 'Alibaba (unspecified seller)';
+select expect((select files from v_invoices where invoice_no = 'ALI-1') = 1, 'invoice shows its file');
+select expect((select files from v_invoices where invoice_no = 'PE-1') = 0, 'invoice without a file shows 0');
+select expect((select count(*) from flags where rule = 'missing_invoice_date' and status = 'open') = 0, 'all test lines have invoice dates');
+select expect_error($$update purchase_lines set invoice_date = null where invoice_no = 'ALI-1'$$, '%cannot be removed%');
+select test_as('00000000-0000-0000-0000-00000000000c');
+select expect_error($$insert into invoice_files (storage_path, file_name) values ('x', 'x')$$, '%row-level security%');
+select test_as('00000000-0000-0000-0000-00000000000a');
 
 reset role;
 select test_as(null);

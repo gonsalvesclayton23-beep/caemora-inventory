@@ -10,6 +10,8 @@ export async function queryLines(sp: SP, limit = 500) {
   if (sp.month) q = q.eq('period_month', sp.month);
   if (sp.company) q = q.eq('company_code', sp.company);
   if (sp.vendor) q = q.eq('vendor_id', Number(sp.vendor));
+  if (sp.missing === 'date') q = q.is('invoice_date', null).eq('category', 'stock');
+  if (sp.missing === 'number') q = q.is('invoice_no', null).eq('category', 'stock');
   if (sp.q) {
     const t = sp.q.replace(/[%,()"\\]/g, ' ').trim();
     q = q.or(`product_name.ilike."%${t}%",fnsku.ilike."${t}%",invoice_no.ilike."%${t}%",amazon_shipment_id.ilike."%${t}%"`);

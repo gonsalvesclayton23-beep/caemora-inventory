@@ -65,11 +65,14 @@ export interface PurchaseInput {
   shipment: { mode: 'none' } | { mode: 'existing'; id: number } |
     { mode: 'new'; boxNo: string; amazonShipmentId: string; trackingNo: string; courier: string; createdOn: string };
   lines: { productId: number; listingId: number | null; description: string; qty: number; unitPrice: number | null; courierPerUnit: number; remarks: string }[];
+  invoiceFile?: { path: string; name: string; type: string; size: number } | null;
 }
 
 export async function savePurchase(input: PurchaseInput) {
   const supabase = await createClient();
   if (!input.lines.length) return { error: 'Add at least one product.' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.invoiceDate)) return { error: 'Enter the invoice date.' };
+  input.month = `${input.invoiceDate.slice(0, 7)}-01`; // INV-01: filed in the invoice's month
   if (input.lines.some((l) => !(l.qty > 0))) return { error: 'Every line needs a quantity.' };
 
   let shipmentId: number | null = null;
@@ -95,6 +98,13 @@ export async function savePurchase(input: PurchaseInput) {
   if (error) {
     if (input.shipment.mode === 'new' && shipmentId) await supabase.from('shipments').delete().eq('id', shipmentId);
     return { error: friendlyError(error) };
+  }
+  if (input.invoiceFile) {
+    const f = input.invoiceFile;
+    await supabase.from('invoice_files').insert({
+      company_code: input.company, vendor_id: input.vendorId, invoice_no: input.invoiceNo.trim() || null, invoice_date: input.invoiceDate,
+      storage_path: f.path, file_name: f.name, content_type: f.type, size_bytes: f.size,
+    });
   }
   revalidatePath('/purchases');
   revalidatePath('/');
