@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clockParts, INDIA_TZ, monthStart, money2, UK_TZ } from '../lib/time.ts';
+import { clockParts, INDIA_TZ, monthStart, money2, UK_TZ } from '../lib/tz.ts';
 
 test('UK is GMT in winter and BST in summer; India is always IST (+5:30)', () => {
   const winter = new Date('2026-11-22T09:15:00Z');
