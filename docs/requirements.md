@@ -356,6 +356,8 @@ No paid tracking service: the app links to the courier's own tracking page and d
 - **AC2** Given I type 125 for Nov on the Admin page. Then 125 is used and marked "manual".
 - **AC3** Given a month has no payments yet. Then the previous month's rate is used.
 
+**Changed 25 Nov 2026:** applies to purchases invoiced before 25 Nov 2026. From then on, purchases use the ECB daily rate of their invoice date (UI-04).
+
 ### LC-04  See what went up since last month: price, courier and landed cost  \[Proposed\]
 
 **As** the UK admin (payment maker) **I want** to see, per product, how the product price, the courier per unit and the landed cost per unit changed from the last month it was bought **so that** I can question the supplier before I pay.
@@ -556,7 +558,9 @@ The daily rate is for information only. Landed cost and reconciliation keep usin
 - **AC2** Given November's Wise rate is ₹123.96 per £ (LC-03). Then the dashboard shows today's rate next to it, with the difference in ₹ and %.
 - **AC3** Given the source has not published today's rate (e.g. a weekend). Then the last published rate shows, labelled with its date, e.g. "Rate from 21 Nov 2026".
 - **AC4** Given I click the rate. Then a chart of the last 30 days' daily rates opens.
-- **AC5** Given today's rate changes. Then no landed cost, balance or payment changes, because those use the monthly Wise rate.
+- **AC5** Given today's rate changes. Then no balance or payment changes, and no purchase already saved changes its cost: each purchase keeps the rate it was saved with.
+
+**Changed 25 Nov 2026:** the daily rate is no longer for information only. Purchases with an invoice date from 25 Nov 2026 are converted at the ECB daily rate of their invoice date (on weekends and holidays, the last rate published before it), saved on the purchase. Earlier purchases keep the monthly Wise rate (LC-03). AC5 reworded to match.
 
 ## Non-functional requirements
 
@@ -622,6 +626,8 @@ Ideas not yet written as full requirements. Move one into Requirements (with an 
 | 22 Nov 2026 | Jan–Oct 2026 are ready to settle (REC-04) |
 | 25 Nov 2026 | Daily FX rate shown on the dashboard for information only; costs and balances keep the monthly Wise rate (UI-04) |
 | 25 Nov 2026 | Speed targets set: pages under 2 seconds, actions under 1 second (NFR-07, NFR-09) |
+| 25 Nov 2026 | Daily rate (UI-04) converts purchases invoiced from 25 Nov 2026, at the ECB rate of the invoice date (last published on weekends), saved on each purchase; earlier purchases keep the monthly Wise rate (LC-03). The dashboard compares it with the current month's Wise rate only |
+| 25 Nov 2026 | PUR-06: receipts per box for split lines; UK/FBM boxes may mix companies; "30 of 50 shipped"; box contents change only while In transit |
 
 ## Glossary
 
