@@ -14,10 +14,17 @@ export default async function ShipmentPage({ params, searchParams }: { params: P
   const supabase = await createClient();
   const [{ data: s }, { data: lines }] = await Promise.all([
     supabase.from('shipments').select('*').eq('id', Number(id)).maybeSingle(),
-    supabase.from('v_purchase_lines').select('id, product_name, fnsku, qty, defective_qty, short_qty, received_qty, remarks')
-      .eq('shipment_id', Number(id)).order('id'),
+    // PUR-06 AC2: the box's contents, each with its units, invoice number and company
+    supabase.from('v_shipment_contents').select('id, purchase_line_id, product_name, invoice_no, company_code, qty, line_qty, defective_qty, short_qty, received_qty')
+      .eq('shipment_id', Number(id)).order('invoice_no').order('id'),
   ]);
   if (!s) notFound();
+  // receipt remarks live on the purchase line (as before)
+  const lineIds = (lines ?? []).map((l) => l.purchase_line_id);
+  const { data: remarks } = lineIds.length
+    ? await supabase.from('purchase_lines').select('id, remarks').in('id', lineIds)
+    : { data: [] };
+  const contents = (lines ?? []).map((l) => ({ ...l, remarks: (remarks ?? []).find((r) => r.id === l.purchase_line_id)?.remarks ?? null }));
 
   return (
     <div className="space-y-4">
@@ -31,10 +38,13 @@ export default async function ShipmentPage({ params, searchParams }: { params: P
       </header>
       {created && <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Shipment created. Now add the purchases that are in it.</p>}
       {me.role !== 'viewer' && (
-        <Link href={`/purchases/new?shipment=${s.id}`} className="btn">+ Add purchase to this shipment</Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/purchases/new?shipment=${s.id}`} className="btn">+ Add purchase to this shipment</Link>
+          {s.status === 'in_transit' && <Link href={`/shipments/pack?box=${s.id}`} className="btn-ghost border border-slate-300 dark:border-slate-700">+ Add lines already bought</Link>}
+        </div>
       )}
       {!lines?.length && <p className="text-sm text-slate-500">No products in this shipment yet.</p>}
-      <ReceiveForm shipment={s} lines={lines ?? []} canEdit={me.role !== 'viewer'} />
+      <ReceiveForm shipment={s} contents={contents as any} canEdit={me.role !== 'viewer'} />
     </div>
   );
 }

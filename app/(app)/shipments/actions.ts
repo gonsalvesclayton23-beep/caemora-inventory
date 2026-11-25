@@ -6,24 +6,44 @@ import { friendlyError, type Result } from '@/lib/data';
 
 const STATUSES = ['in_transit', 'received', 'received_partial', 'lost', 'cancelled'];
 
-/** Saves the shipment's receipt details and the defective/short quantity of each of its lines. */
+/** Saves the box's receipt details and, per product in it, the units, defective and short (PUR-06: per box). */
 export async function saveShipment(_: unknown, form: FormData): Promise<Result> {
   const supabase = await createClient();
   const id = Number(form.get('id'));
   const s = (k: string) => { const v = String(form.get(k) ?? '').trim(); return v === '' ? null : v; };
+  const num = (k: string) => Number(form.get(k) || 0);
 
-  const lineIds = form.getAll('line_id').map(Number);
-  const lines = lineIds.map((lineId) => ({
-    id: lineId,
-    defective_qty: Number(form.get(`defective_${lineId}`) || 0),
-    short_qty: Number(form.get(`short_${lineId}`) || 0),
-    remarks: s(`remarks_${lineId}`),
+  const items = form.getAll('item_id').map(Number).map((itemId) => ({
+    id: itemId,
+    lineId: Number(form.get(`line_${itemId}`)),
+    qty: form.has(`qty_${itemId}`) ? num(`qty_${itemId}`) : null,
+    defective_qty: num(`defective_${itemId}`),
+    short_qty: num(`short_${itemId}`),
+    remarks: s(`remarks_${itemId}`),
+    remove: form.get(`remove_${itemId}`) === 'on',
   }));
-  if (lines.some((l) => l.defective_qty < 0 || l.short_qty < 0)) return { error: 'Quantities cannot be negative.' };
+  if (items.some((i) => i.defective_qty < 0 || i.short_qty < 0 || (i.qty != null && i.qty < 0))) return { error: 'Quantities cannot be negative.' };
+
+  // contents first (allowed while In transit), then the box's status
+  for (const i of items) {
+    if (i.remove || i.qty === 0) {
+      const { error } = await supabase.from('shipment_items').delete().eq('id', i.id).eq('shipment_id', id);
+      if (error) return { error: friendlyError(error) };
+      continue;
+    }
+    const patch: Record<string, number> = { defective_qty: i.defective_qty, short_qty: i.short_qty };
+    if (i.qty != null) patch.qty = i.qty;
+    const { error } = await supabase.from('shipment_items').update(patch).eq('id', i.id).eq('shipment_id', id);
+    if (error) return { error: friendlyError(error) };
+    // receipt remarks stay on the purchase line, as before (the "no remark" flag reads them there)
+    const { error: e2 } = await supabase.from('purchase_lines').update({ remarks: i.remarks }).eq('id', i.lineId);
+    if (e2) return { error: friendlyError(e2) };
+  }
 
   let status = s('status') ?? 'in_transit';
   if (!STATUSES.includes(status)) return { error: 'Unknown status.' };
-  if (status === 'received' && lines.some((l) => l.defective_qty + l.short_qty > 0)) status = 'received_partial';
+  const kept = items.filter((i) => !i.remove && i.qty !== 0);
+  if (status === 'received' && kept.some((i) => i.defective_qty + i.short_qty > 0)) status = 'received_partial';
   const receivedOn = s('received_on') ?? (status.startsWith('received') ? new Date().toISOString().slice(0, 10) : null);
 
   const { error } = await supabase.from('shipments').update({
@@ -31,15 +51,31 @@ export async function saveShipment(_: unknown, form: FormData): Promise<Result> 
   }).eq('id', id);
   if (error) return { error: friendlyError(error) };
 
-  for (const l of lines) {
-    const { error: e } = await supabase.from('purchase_lines')
-      .update({ defective_qty: l.defective_qty, short_qty: l.short_qty, remarks: l.remarks }).eq('id', l.id).eq('shipment_id', id);
-    if (e) return { error: friendlyError(e) };
-  }
   revalidatePath('/shipments');
   revalidatePath(`/shipments/${id}`);
   revalidatePath('/');
   return { ok: true, status };
+}
+
+/** PUR-06: put the ticked lines (with how many units of each) into a new or existing box. */
+export async function putInBox(input: {
+  lines: { lineId: number; qty: number }[];
+  shipmentId: number | null;
+  newBox: { company_code: string; box_no: string; amazon_shipment_id: string; tracking_no: string; courier: string; created_on: string; channel: string } | null;
+}): Promise<Result & { shipmentId?: number }> {
+  const supabase = await createClient();
+  const lines = input.lines.filter((l) => l.qty > 0);
+  if (!lines.length) return { error: 'Tick at least one line and give it a quantity.' };
+  if (!input.shipmentId && !input.newBox?.company_code) return { error: 'Choose the company for the new box.' };
+  const { data, error } = await supabase.rpc('put_in_box', {
+    p_lines: lines.map((l) => ({ line_id: l.lineId, qty: l.qty })),
+    p_shipment: input.shipmentId,
+    p_new: input.newBox,
+  });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath('/shipments');
+  revalidatePath('/purchases');
+  return { ok: true, shipmentId: Number(data) };
 }
 
 /** SHP-06: create a shipment on its own, before any purchase is entered into it. */
