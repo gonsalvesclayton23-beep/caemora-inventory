@@ -39,7 +39,8 @@ export default async function LinePage({ params }: { params: Promise<{ id: strin
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="card"><div className="text-xs text-slate-500">Line total</div><div className="font-semibold tabular-nums">{money(line.line_total, line.currency)}</div></div>
-        <div className="card"><div className="text-xs text-slate-500">Landed / unit</div><div className="font-semibold tabular-nums">{money(line.landed_per_unit_inr, 'INR')} · {money(line.landed_per_unit_gbp, 'GBP')}</div></div>
+        <div className="card"><div className="text-xs text-slate-500">Landed / unit</div><div className="font-semibold tabular-nums">{money(line.landed_per_unit_inr, 'INR')} · {money(line.landed_per_unit_gbp, 'GBP')}</div>
+          <div className="text-xs text-slate-500">at ₹{Number(line.inr_per_gbp).toFixed(2)} per £, {line.fx_basis === 'daily' ? `ECB daily rate of ${line.fx_rate_date}` : 'monthly Wise rate'}</div></div>
         <div className="card"><div className="text-xs text-slate-500">Per unit received</div><div className="font-semibold tabular-nums">{money(line.landed_per_received_unit, line.currency)}</div></div>
         <div className="card"><div className="text-xs text-slate-500">Boxes</div>
           <div className="text-sm">{boxSummary?.summary ?? 'Not in a box yet'}</div>

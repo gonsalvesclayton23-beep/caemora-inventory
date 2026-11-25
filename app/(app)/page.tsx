@@ -5,6 +5,9 @@ import { money, monthLabel, RULE_LABELS } from '@/lib/format';
 import { monthStart, money2 } from '@/lib/tz';
 import { Clocks } from '@/components/Clocks';
 import { UnitsChart } from '@/components/UnitsChart';
+import { FxCard } from '@/components/FxCard';
+import { latestRate, last30Days } from '@/lib/fx';
+import { UK_TZ } from '@/lib/tz';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +28,16 @@ export default async function Dashboard() {
   const thisMonth = months.at(-1);
   const lastMonth = months.at(-2);
   const missingCurrency = months.reduce((s, m) => s + m.missing, 0);
+
+  // UI-04: today's ECB rate (or the last published), this month's Wise rate (decision: current month only), 30 days of history
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: UK_TZ }).format(new Date());
+  const [{ data: dailyRows }, { data: wiseRow }] = await Promise.all([
+    supabase.from('daily_fx_rates').select('rate_date, inr_per_gbp, fetched_at').order('rate_date', { ascending: false }).limit(40),
+    supabase.from('fx_rates').select('inr_per_gbp').eq('month', month).maybeSingle(),
+  ]);
+  const daily = (dailyRows ?? []).map((r) => ({ date: r.rate_date as string, inrPerGbp: Number(r.inr_per_gbp), fetched: r.fetched_at as string }));
+  const latestFx = latestRate(daily, today);
+  const fetched = daily.find((d) => d.date === latestFx?.date)?.fetched;
 
   const byRule = new Map<string, number>();
   for (const f of flags ?? []) byRule.set(f.rule, (byRule.get(f.rule) ?? 0) + 1);
@@ -72,6 +85,11 @@ export default async function Dashboard() {
         </div>
         <Clocks />
       </header>
+
+      <FxCard latest={latestFx ? { date: latestFx.date, inrPerGbp: latestFx.inrPerGbp } : null} label={latestFx?.label ?? ''}
+        updated={fetched ? new Date(fetched).toLocaleString('en-GB', { timeZone: UK_TZ, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' UK time' : null}
+        wise={wiseRow ? Number(wiseRow.inr_per_gbp) : null} wiseMonth={monthLabel(month)}
+        history={last30Days(daily, today).map(({ date, inrPerGbp }) => ({ date, inrPerGbp }))} />
 
       {/* DSH-02: spend by currency, never added together or converted */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
