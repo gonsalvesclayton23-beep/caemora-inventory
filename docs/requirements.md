@@ -8,7 +8,7 @@ This is the single list of what the Caemora inventory app must do. Every require
 
 ### Adding a requirement
 
-1. Pick the area it belongs to (Products, Purchases, Shipments…) and take the next ID, e.g. PUR-07.
+1. Pick the area it belongs to (Products, Purchases, Shipments…) and take the next ID, e.g. PUR-10.
 2. Write it in the template below, with 2 to 5 ACs, using real product names, quantities and ₹/£ amounts.
 3. Add a row to the index table in Requirements with status Proposed.
 4. Questions go in a comment on the requirement, or in Open questions at the end.
@@ -76,7 +76,7 @@ Live at caemora-inventory.vercel.app (Vercel + Supabase, London). Data imported 
 
 ## Requirements
 
-43 requirements across 9 areas: 23 are built, 2 are changed and need re-testing (PRD-03, ACC-01), 1 is dropped (PRD-06), 6 are agreed for batch 1 and 11 are proposed (added 21–25 Nov 2026: PRD-07, PUR-06, SHP-06, SHP-07, LC-04, LC-05, REC-05, REC-06, REC-07, ACC-03, ACC-04, UI-01, UI-02, UI-03, UI-04). Details and ACs follow the index.
+50 requirements across 9 areas: 30 are built, 2 are changed and need re-testing (PRD-03, ACC-01), 1 is dropped (PRD-06), 6 are agreed for batch 1 and 11 are proposed (added 21–25 Nov 2026: PRD-07, PUR-06, SHP-06, SHP-07, LC-04, LC-05, REC-05, REC-06, REC-07, ACC-03, ACC-04, UI-01, UI-02, UI-03, UI-04). PUR-07 to PUR-09, SHP-08 and UI-05 to UI-07 record features already built on 22 Nov 2026. Details and ACs follow the index.
 
 | ID | Requirement | Who | Status |
 | --- | --- | --- | --- |
@@ -93,6 +93,9 @@ Live at caemora-inventory.vercel.app (Vercel + Supabase, London). Data imported 
 | PUR-04 | Edit or delete a line; settled months locked | Data entry, Admin | Built |
 | PUR-05 | Filter purchases and export to CSV | All | Built |
 | PUR-06 | Group several products into one shipment box | Data entry | Proposed |
+| PUR-07 | Invoice date required on every purchase | Data entry | Built |
+| PUR-08 | Upload the invoice file when entering a purchase | Data entry | Built |
+| PUR-09 | Invoices page: missing files and missing invoice details | All | Built |
 | SHP-01 | Record a shipment or box with its IDs | Data entry | Built |
 | SHP-02 | Record what was received, short or defective | Data entry | Built |
 | SHP-03 | Allow receipts after a month is settled | Data entry | Built |
@@ -100,6 +103,7 @@ Live at caemora-inventory.vercel.app (Vercel + Supabase, London). Data imported 
 | SHP-05 | Track Amazon claims and reimbursements | Data entry, Admin | Proposed |
 | SHP-06 | Live FBA shipment status from Amazon Seller Central | All | Proposed |
 | SHP-07 | Courier tracking link (DPD, Parcelforce, Royal Mail) | All | Proposed |
+| SHP-08 | Create a shipment on its own, then add purchases to it | Data entry | Built |
 | LC-01 | Landed cost per unit in ₹ and £ | All | Built |
 | LC-02 | Landed cost per unit actually received | All | Built |
 | LC-03 | Monthly ₹/£ rate from Wise payments | Admin | Built |
@@ -123,6 +127,9 @@ Live at caemora-inventory.vercel.app (Vercel + Supabase, London). Data imported 
 | UI-02 | Chart of units sent by each supplier | All | Proposed |
 | UI-03 | Clear, easy-to-understand layout | All | Agreed |
 | UI-04 | Daily FX rate on the dashboard | All | Proposed |
+| UI-05 | Monthly units ordered chart | All | Built |
+| UI-06 | Amount spent by currency (₹ and £) | All | Built |
+| UI-07 | UK and India clocks | All | Built |
 
 ## Build plan for Claude Code
 
@@ -271,6 +278,34 @@ This builds on PUR-01 AC3 and SHP-01 AC2, which link one invoice at a time to a 
 - **AC4** Given a line of 50 ENO Regular 30's. When I put 30 in box 3 and 20 in box 4. Then each box shows its part and the line shows "50 shipped in 2 boxes". If I try to put 60 in total, the app refuses.
 - **AC5** Given one line is for ARC and another for Goenche. When I try to put both in the same Amazon (FBA) box. Then the app refuses: "An Amazon shipment can only hold one company's stock".
 
+### PUR-07  Invoice date required on every purchase
+
+**As** the UK admin **I want** every purchase to carry its invoice date **so that** orders are dated by the invoice, not by a spreadsheet tab. Built 22 Nov 2026 (was INV-01); UI-01 builds on it.
+
+- **AC1** Given I enter a new purchase. When the invoice date is empty. Then it cannot be saved: "Enter the invoice date."
+- **AC2** Given the invoice date is 28 Nov 2026. Then the purchase is filed under November 2026, with no separate month to choose.
+- **AC3** Given the invoice date falls in a settled month and I am data entry. Then the app refuses: "<Month> is settled".
+- **AC4** Given a line has an invoice date. When someone tries to clear it. Then the app refuses: "The invoice date cannot be removed."
+- **AC5** Given an imported line has no invoice date. Then it is flagged "Missing invoice date" until one is added.
+
+### PUR-08  Upload the invoice file when entering a purchase
+
+**As** the India team **I want** to attach the invoice PDF or a photo of it to the purchase **so that** every purchase has its proof. Built 22 Nov 2026 (was INV-02); covers part of REC-05 AC1.
+
+- **AC1** Given I am entering a purchase. When I choose a PDF or image (JPG, PNG, WEBP, HEIC) up to 10 MB. Then it is uploaded on save and linked to that invoice number, vendor and company.
+- **AC2** Given the file is not a PDF or image, or is over 10 MB. Then I see why it was refused, and nothing is saved.
+- **AC3** Given no file is chosen. Then the purchase still saves, and the invoice shows as "No file yet".
+
+### PUR-09  Invoices page: missing files and missing invoice details
+
+**As** the UK admin **I want** one place to see every invoice and what is missing **so that** I can chase missing paperwork. Built 22 Nov 2026 (was INV-03).
+
+- **AC1** Given invoices exist. Then "No file yet" lists each invoice without a file: number, vendor, company, date, lines, units and ₹/£ total.
+- **AC2** When I press "Upload invoice" on one and pick a file. Then it is attached and the invoice leaves the "No file yet" list.
+- **AC3** Given an invoice has a file. When I press its file name. Then it opens through a private, short-lived link (files are never public).
+- **AC4** The page shows how many purchase lines have no invoice date or number, each linking to the purchases to fix.
+- **AC5** Given I am a Viewer. Then I can open files but cannot upload.
+
 ## Shipments and receiving (SHP)
 
 ### SHP-01  Record a shipment or box with its IDs
@@ -330,6 +365,16 @@ No paid tracking service: the app links to the courier's own tracking page and d
 - **AC1** Given box 3 has DPD tracking 15509743236023. When I click Track. Then DPD's tracking page for 15509743236023 opens in a new tab.
 - **AC2** Given I enter a tracking number. When I save the box. Then I must pick the courier: DPD, Parcelforce, Royal Mail or Other.
 - **AC3** Given the courier is Other. Then the number shows without a link, with "Track on the courier's website".
+
+### SHP-08  Create a shipment on its own, then add purchases to it
+
+**As** the India team **I want** to create a shipment or box before entering what is in it **so that** I can record the Amazon shipment ID and tracking as soon as the box is packed. Built 22 Nov 2026 (was SHP-06 in the 22 Nov version of this doc).
+
+- **AC1** Given I am on Shipments. When I press "+ New shipment" and enter ARC, box 3, FBA15MRYZWHR, tracking 15509743236023, 27 Oct 2026. Then the shipment is created as "In transit" and its page opens, showing 0 products.
+- **AC2** Given that new shipment. When I press "Add purchase to this shipment". Then New purchase opens with this shipment already chosen and company set to ARC.
+- **AC3** Given shipment FBA15MRYZWHR box 3 already exists. When I try to create it again. Then the app refuses and links to the existing one.
+- **AC4** Given I am a Viewer. Then I do not see "+ New shipment".
+- **AC5** Given October is settled and I am data entry. When I try to create a shipment in October. Then the app refuses: "October 2026 is settled".
 
 ## Landed cost (LC)
 
@@ -558,6 +603,38 @@ The daily rate is for information only. Landed cost and reconciliation keep usin
 - **AC4** Given I click the rate. Then a chart of the last 30 days' daily rates opens.
 - **AC5** Given today's rate changes. Then no landed cost, balance or payment changes, because those use the monthly Wise rate.
 
+### UI-05  Monthly units ordered chart
+
+**As** the business owner **I want** a graph of the total units ordered each month **so that** I can see how much stock is ordered month by month across the business. Built 22 Nov 2026 (was DSH-01).
+
+- **AC1** Given purchases exist. Then the dashboard shows a bar chart with one bar per calendar month (x = month, e.g. "Jan 2026"; y = units).
+- **AC2** Each bar is the quantity ordered across all companies and all suppliers that month, stock only (packaging and stationery are not units of stock).
+- **AC3** A purchase counts in the month of its invoice date (PUR-07). Imported lines without one count in their spreadsheet month.
+- **AC4** The default view is the last 12 months, including the current UK month.
+- **AC5** Months with no orders show 0, with no gaps.
+- **AC6** Hovering over or tapping a bar shows the month and the exact unit total.
+- **AC7** Given no purchases at all. Then the chart says "No orders recorded yet".
+
+### UI-06  Amount spent by currency (₹ and £)
+
+**As** the business owner **I want** the amount spent in rupees and in pounds on the dashboard **so that** I track India and China spend separately. Built 22 Nov 2026 (was DSH-02).
+
+- **AC1** Two tiles near the top: Spent (INR) with ₹ and Spent (GBP) with £, based on the currency recorded on each purchase.
+- **AC2** The two currencies are never added together or converted (NFR-04). Totals include all companies.
+- **AC3** Each tile shows this month's total, with last month underneath.
+- **AC4** Amounts have thousands separators and 2 decimals: £12,345.67, ₹1,23,456.00 (Indian grouping).
+- **AC5** A monthly table of units, ₹ and £ sits under the chart, for the same months as UI-05.
+- **AC6** Purchases with no currency are left out and counted ("3 purchases missing currency"). The app requires a currency, so this normally never shows.
+
+### UI-07  UK and India clocks
+
+**As** the business owner working with a partner in India **I want** the current UK and India time on the dashboard **so that** I know the time for my partner before I call, message or pay. Built 22 Nov 2026 (was DSH-03).
+
+- **AC1** Two clocks side by side in the dashboard header, labelled UK and India, each showing HH:MM (24-hour) and the day and date, e.g. "Sun 22 Nov".
+- **AC2** UK uses Europe/London and switches between GMT and BST automatically. India uses Asia/Kolkata (IST, UTC+5:30, no daylight saving).
+- **AC3** The clocks update at least once a minute without refreshing, from the time zones rather than the device's clock.
+- **AC4** When the dates differ (late evening in the UK), each clock shows its own date.
+
 ## Non-functional requirements
 
 These apply to every screen and are checked on each release.
@@ -622,6 +699,7 @@ Ideas not yet written as full requirements. Move one into Requirements (with an 
 | 22 Nov 2026 | Jan–Oct 2026 are ready to settle (REC-04) |
 | 25 Nov 2026 | Daily FX rate shown on the dashboard for information only; costs and balances keep the monthly Wise rate (UI-04) |
 | 25 Nov 2026 | Speed targets set: pages under 2 seconds, actions under 1 second (NFR-07, NFR-09) |
+| 25 Nov 2026 | Features built on 22 Nov kept and recorded as PUR-07 to PUR-09, SHP-08 and UI-05 to UI-07 |
 
 ## Glossary
 
