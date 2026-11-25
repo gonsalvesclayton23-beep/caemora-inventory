@@ -20,5 +20,6 @@ for f in supabase/migrations/*.sql; do $PSQL -d caemora_test -f "$f"; done
 $PSQL -d caemora_test -f supabase/tests/grants.sql
 $PSQL -d caemora_test -f supabase/seed.sql
 $PSQL -d caemora_test -f supabase/tests/tests.sql >/dev/null
+$PSQL -d caemora_test -f supabase/tests/pur06.sql >/dev/null
 echo "All database tests passed."
 if [ "${1:-}" != "--keep" ]; then $RUNAS "$PGBIN/pg_ctl" -D "$DATA" stop >/dev/null; fi

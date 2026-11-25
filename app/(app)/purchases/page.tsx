@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Filters } from '@/components/Filters';
 import { referenceData } from '@/lib/data';
 import { queryLines } from '@/lib/queries';
+import { PURCHASES_ALL_MONTHS_LIMIT, PURCHASES_ONE_MONTH_LIMIT } from '@/lib/limits';
+import { createClient } from '@/lib/supabase/server';
 import { money, monthLabel } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +15,17 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const { companies, periods } = await referenceData();
   const month = sp.month ?? (sp.q || sp.missing ? undefined : periods[0]?.month);
-  const { data: lines, error } = await queryLines({ ...sp, month });
+  // NFR-09: "All months" opens every line, not just the first few hundred
+  const limit = month ? PURCHASES_ONE_MONTH_LIMIT : PURCHASES_ALL_MONTHS_LIMIT;
+  const { data: lines, error } = await queryLines({ ...sp, month }, limit);
+  // PUR-06 AC4: lines split across boxes, or partly boxed
+  const supabase = await createClient();
+  const ids = (lines ?? []).map((l) => l.id);
+  const boxSummary = new Map<number, { summary: string; box_count: number; boxed_qty: number }>();
+  for (let i = 0; i < ids.length; i += 300) {
+    const { data } = await supabase.from('v_line_boxes').select('purchase_line_id, summary, box_count, boxed_qty').in('purchase_line_id', ids.slice(i, i + 300));
+    for (const b of data ?? []) boxSummary.set(b.purchase_line_id, b);
+  }
 
   const totals = new Map<string, number>();
   for (const l of lines ?? []) totals.set(l.currency, (totals.get(l.currency) ?? 0) + Number(l.line_total));
@@ -34,7 +46,7 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
       {error && <p className="text-red-600">{error.message}</p>}
 
       <p className="text-sm text-slate-500">
-        {lines?.length ?? 0} lines{lines?.length === 500 ? ' (first 500, so narrow the filters)' : ''} · {[...totals.entries()].map(([c, t]) => money(t, c as 'INR')).join(' + ')}
+        {lines?.length ?? 0} lines{lines?.length === limit ? ` (first ${limit.toLocaleString('en-GB')}: narrow the filters)` : ''} · {[...totals.entries()].map(([c, t]) => money(t, c as 'INR')).join(' + ')}
       </p>
 
       {/* phone: cards */}
@@ -65,7 +77,9 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
                 <td className="num">{money(l.courier_per_unit, l.currency)}</td>
                 <td className="num">{money(l.line_total, l.currency)}</td>
                 <td>{l.invoice_no ?? <span className="text-amber-600">—</span>}</td>
-                <td className="text-xs">{l.amazon_shipment_id ?? l.tracking_no ?? ''}<div className="text-slate-500">{l.shipment_status?.replace('_', ' ')}</div></td>
+                <td className="text-xs">{l.amazon_shipment_id ?? l.tracking_no ?? ''}<div className="text-slate-500">{l.shipment_status?.replace('_', ' ')}</div>
+                  {(() => { const b = boxSummary.get(l.id); return b && (b.box_count > 1 || b.boxed_qty < l.qty) ? <div className="text-slate-600 dark:text-slate-300">{b.summary}</div> : null; })()}
+                </td>
                 <td className={`num ${l.received_qty < l.qty ? 'text-amber-600' : ''}`}>{l.received_qty}</td>
               </tr>
             ))}

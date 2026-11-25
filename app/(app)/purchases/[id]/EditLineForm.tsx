@@ -4,16 +4,17 @@ import { deleteLine, updateLine } from '../actions';
 
 const MONEY = ['qty', 'unit_price', 'courier_per_unit', 'currency', 'invoice_no', 'invoice_date', 'company_code', 'vendor_id'];
 
-export default function EditLineForm({ line, companies, vendors, settled, admin, canEdit }: {
+export default function EditLineForm({ line, companies, vendors, settled, admin, canEdit, splitAcross = 0 }: {
   line: any; companies: { code: string; name: string }[]; vendors: { id: number; name: string }[];
-  settled: boolean; admin: boolean; canEdit: boolean;
+  settled: boolean; admin: boolean; canEdit: boolean; splitAcross?: number;
 }) {
   const [state, action, pending] = useActionState(updateLine, null);
   const [delState, delAction, deleting] = useActionState(deleteLine, null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // settled month: data entry may only record receipt details; admins may change anything with a reason
   const moneyLocked = !canEdit || (settled && !admin);
-  const ro = (f: string) => !canEdit || (MONEY.includes(f) && moneyLocked);
+  // PUR-06: a line split across boxes records its shortages on each box
+  const ro = (f: string) => !canEdit || (MONEY.includes(f) && moneyLocked) || (splitAcross > 1 && ['defective_qty', 'short_qty'].includes(f));
 
   return (
     <div className="space-y-4">
@@ -46,6 +47,7 @@ export default function EditLineForm({ line, companies, vendors, settled, admin,
           <Field line={line} disabled={ro("invoice_date")} name="invoice_date" label="Invoice date" type="date" />
         </div>
         <h3 className="font-medium">Received</h3>
+        {splitAcross > 1 && <p className="text-xs text-slate-500">This line is in {splitAcross} boxes: defective and short units are recorded on each box.</p>}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Field line={line} disabled={ro("defective_qty")} name="defective_qty" label="Defective" mode="numeric" />
           <Field line={line} disabled={ro("short_qty")} name="short_qty" label="Short" mode="numeric" />

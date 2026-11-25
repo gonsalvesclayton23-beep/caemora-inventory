@@ -27,7 +27,7 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Pr
   const supabase = await createClient();
 
   let q = supabase.from('shipments')
-    .select('id, period_month, company_code, channel, box_no, amazon_shipment_id, tracking_no, created_on, created_at, status, received_on, purchase_lines(qty, short_qty, defective_qty)')
+    .select('id, period_month, company_code, channel, box_no, amazon_shipment_id, tracking_no, created_on, created_at, status, received_on, purchase_lines:shipment_items(qty, short_qty, defective_qty)')
     .order('created_on', { ascending: false, nullsFirst: false }).order('id', { ascending: false }).limit(300);
   if (status !== 'all') q = q.eq('status', status);
   if (sp.month) q = q.eq('period_month', sp.month);
@@ -40,7 +40,12 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Pr
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">Shipments</h1>
-        {me.role !== 'viewer' && <Link href="/shipments/new" className="btn">+ New shipment</Link>}
+        {me.role !== 'viewer' && (
+          <div className="flex gap-2">
+            <Link href="/shipments/pack" className="btn-ghost border border-slate-300 dark:border-slate-700">Put in a box</Link>
+            <Link href="/shipments/new" className="btn">+ New shipment</Link>
+          </div>
+        )}
       </div>
       <div className="flex flex-wrap gap-2 text-sm">
         {['in_transit', 'received_partial', 'received', 'lost', 'all'].map((s) => (

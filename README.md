@@ -1,7 +1,7 @@
 # Caemora Inventory
 
 Purchases, shipments, landed cost and supplier reconciliation for Caemora, ARC, Goenche, YouDent, Al Store, Gentech and Goa Sales.
-Replaces the MIT-2026.xlsx tracker. What it must do, with acceptance criteria: [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md).
+Replaces the MIT-2026.xlsx tracker. What it must do, with acceptance criteria: [docs/requirements.md](docs/requirements.md).
 
 - **Next.js** (TypeScript) web app, mobile-friendly: deploy to Vercel
 - **Supabase** Postgres + logins: all rules (roles, settled-month lock, flags, audit) live in the database, so they hold whatever screen or script touches the data
