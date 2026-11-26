@@ -1,4 +1,5 @@
 'use client';
+import { APP_NAME } from '@/lib/nav';
 import { useActionState } from 'react';
 import { signIn } from './actions';
 
@@ -8,7 +9,7 @@ export default function LoginPage() {
     <main className="flex min-h-dvh items-center justify-center p-4">
       <form action={action} className="card w-full max-w-sm space-y-4">
         <div>
-          <h1 className="text-xl font-semibold">Caemora Inventory</h1>
+          <h1 className="text-xl font-semibold">{APP_NAME}</h1>
           <p className="text-sm text-slate-500">Sign in to continue</p>
         </div>
         <div>

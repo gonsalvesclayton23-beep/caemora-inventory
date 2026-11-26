@@ -8,7 +8,7 @@ import { ProductForm } from '../ProductForm';
 import { marginSettings, productValues, todaysRate } from '../data';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'New margin line' };
+export const metadata = { title: 'New product margin line' };
 
 export default async function NewMarginProduct({ searchParams }: { searchParams: Promise<{ company?: string; product?: string; q?: string }> }) {
   const sp = await searchParams;
@@ -44,8 +44,8 @@ export default async function NewMarginProduct({ searchParams }: { searchParams:
 
   return (
     <div className="space-y-4">
-      <Link href="/margins" className="text-sm text-slate-500 hover:underline">← Margins</Link>
-      <h1 className="text-2xl font-semibold">New margin line</h1>
+      <Link href="/margins" className="text-sm text-slate-500 hover:underline">← Product margins</Link>
+      <h1 className="text-2xl font-semibold">New product margin line</h1>
       <p className="text-sm text-slate-500">Enter the product once, then a price for each platform it is sold on. Platforms with no price show “Not priced”.</p>
       <div className="card space-y-2">
         <form className="flex flex-wrap items-end gap-2">

@@ -9,7 +9,7 @@ import { DeleteForm, TodaysRateForm } from '../forms';
 import { marginSettings, productValues, todaysRate } from '../data';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Margin line' };
+export const metadata = { title: 'Product margin line' };
 
 export default async function MarginProductPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string }> }) {
   const id = Number((await params).id);
@@ -30,7 +30,7 @@ export default async function MarginProductPage({ params, searchParams }: { para
 
   return (
     <div className="space-y-4">
-      <Link href="/margins" className="text-sm text-slate-500 hover:underline">← Margins</Link>
+      <Link href="/margins" className="text-sm text-slate-500 hover:underline">← Product margins</Link>
       <h1 className="text-2xl font-semibold">{p.name}</h1>
       {sp.saved && <p className="text-sm text-emerald-600">Line created.</p>}
       {!admin && <p className="text-sm text-slate-500">Only an admin can change margins.</p>}
