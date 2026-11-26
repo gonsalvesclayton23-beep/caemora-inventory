@@ -29,6 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: '/flags', label: 'Flags', show: true },
     { href: '/reconciliation', label: 'Reconciliation', show: canViewMoney(me) },
     { href: '/landed-cost', label: 'Landed cost', show: canViewMoney(me) },
+    { href: '/margins', label: 'Margins', show: true },
     { href: '/admin', label: 'Admin', show: isAdmin(me) },
   ].filter((n) => n.show);
 

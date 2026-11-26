@@ -14,7 +14,7 @@ export default async function AdminPage() {
   const { periods, companies } = await referenceData();
   const [{ data: users }, { data: settings }, { data: fx }] = await Promise.all([
     supabase.from('profiles').select('id, full_name, email, role, active').order('active', { ascending: true }).order('full_name'),
-    supabase.from('settings').select('key, value, description').order('key'),
+    supabase.from('settings').select('key, value, description').not('key', 'like', 'margin_%').order('key'),
     supabase.from('v_fx').select('month, inr_per_gbp, source').order('month', { ascending: false }),
   ]);
   const { data: vatHistory } = await supabase.from('v_company_vat_history')
