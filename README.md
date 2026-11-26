@@ -1,4 +1,4 @@
-# Caemora Inventory Management System
+# CIMS - (Caemora Inventory Management System)
 
 Purchases, shipments, landed cost and supplier reconciliation for Caemora Ltd, ARC UK G Ltd, Youdent Ltd, Goenche Ltd, Goasales, Gentech and Al Store.
 Replaces the MIT-2026.xlsx tracker. What it must do, with acceptance criteria: [docs/requirements.md](docs/requirements.md).

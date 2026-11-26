@@ -1,4 +1,4 @@
-// Renames (27 Nov 2026): the app is "Caemora Inventory Management System"; the Margins tab is "Product margins".
+// Renames (27 Nov 2026): the app is "CIMS - (Caemora Inventory Management System)"; the Margins tab is "Product margins".
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -11,8 +11,8 @@ const files = (dir: string): string[] => readdirSync(dir).flatMap((f) => {
 });
 const source = files('app').map((f) => [f, readFileSync(f, 'utf8')] as const);
 
-test('Rename AC1: the app is called "Caemora Inventory Management System" (sidebar, sign-in page, browser tab)', () => {
-  assert.equal(APP_NAME, 'Caemora Inventory Management System');
+test('Rename AC1: the app is called "CIMS - (Caemora Inventory Management System)" (sidebar, sign-in page, browser tab)', () => {
+  assert.equal(APP_NAME, 'CIMS - (Caemora Inventory Management System)');
   for (const f of ['app/layout.tsx', 'app/login/page.tsx', 'app/(app)/layout.tsx']) assert.match(readFileSync(f, 'utf8'), /APP_NAME/, f);
   const old = source.filter(([, s]) => /Caemora Inventory(?! Management System)['"<`]/.test(s) || />Caemora</.test(s)).map(([f]) => f);
   assert.deepEqual(old, [], 'old name still shown');
