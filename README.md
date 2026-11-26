@@ -1,6 +1,6 @@
 # Caemora Inventory
 
-Purchases, shipments, landed cost and supplier reconciliation for Caemora, ARC, Goenche, YouDent, Al Store, Gentech and Goa Sales.
+Purchases, shipments, landed cost and supplier reconciliation for Caemora Ltd, ARC UK G Ltd, Youdent Ltd, Goenche Ltd, Goasales, Gentech and Al Store.
 Replaces the MIT-2026.xlsx tracker. What it must do, with acceptance criteria: [docs/requirements.md](docs/requirements.md).
 
 - **Next.js** (TypeScript) web app, mobile-friendly: deploy to Vercel

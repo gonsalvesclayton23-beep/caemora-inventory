@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { canViewMoney, getProfile } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { byCompanyOrder, referenceData } from '@/lib/data';
 import { money, monthLabel, RULE_LABELS } from '@/lib/format';
 import { monthStart, money2 } from '@/lib/tz';
 import { Clocks } from '@/components/Clocks';
@@ -14,6 +15,8 @@ export const dynamic = 'force-dynamic';
 export default async function Dashboard() {
   const me = await getProfile();
   const supabase = await createClient();
+  const { companies } = await referenceData();
+  const companyOrder = byCompanyOrder(companies);
 
   // DSH-01/02: the current month is the UK month; all monthly figures come from dashboard_monthly()
   const month = monthStart(new Date());
@@ -140,7 +143,7 @@ export default async function Dashboard() {
         <table className="table">
           <thead><tr><th>Company</th><th className="num">Units</th><th className="num">₹</th><th className="num">£</th>{canViewMoney(me) && <th className="num">Owes Peace</th>}</tr></thead>
           <tbody>
-            {[...byCompany.entries()].sort().map(([c, v]) => (
+            {[...byCompany.entries()].sort((a, b) => companyOrder(a[0], b[0])).map(([c, v]) => (
               <tr key={c}>
                 <td>{c}</td><td className="num">{v.qty.toLocaleString('en-GB')}</td>
                 <td className="num">{money(v.inr, 'INR')}</td><td className="num">{money(v.gbp, 'GBP')}</td>

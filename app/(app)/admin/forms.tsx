@@ -1,6 +1,6 @@
 'use client';
 import { useActionState } from 'react';
-import { acknowledgeBefore, saveSettings, setFxRate, updateRateCard, updateUser } from './actions';
+import { acknowledgeBefore, saveSettings, setFxRate, updateRateCard, updateUser, updateVat } from './actions';
 import { RULE_LABELS, monthLabel } from '@/lib/format';
 import type { Result } from '@/lib/data';
 
@@ -77,6 +77,20 @@ export function RateCardForm({ p }: { p: { id: number; agreed_courier_per_unit: 
       <input name="from" type="month" defaultValue={p.agreed_courier_from?.slice(0, 7) ?? ''} className="input w-36 py-1" aria-label="Applies from month" />
       <button className="btn-ghost py-1" disabled={pending}>Save</button>
       <Msg s={s} />
+    </form>
+  );
+}
+
+export function VatRow({ c }: { c: { code: string; name: string; default_vat_pct: number; vat_scheme: string | null } }) {
+  const [s, action, pending] = useActionState(updateVat, null);
+  return (
+    <form action={action} className="grid grid-cols-1 items-end gap-2 border-b border-slate-100 py-3 sm:grid-cols-[1fr_6rem_10rem_12rem_auto] dark:border-slate-800">
+      <input type="hidden" name="code" value={c.code} />
+      <div><div className="font-medium">{c.name}</div><div className="text-xs text-slate-500">{c.code}</div></div>
+      <label><span className="label text-xs">Default VAT (%)</span><input name="vat" defaultValue={Number(c.default_vat_pct)} inputMode="decimal" className="input text-right" /></label>
+      <label><span className="label text-xs">Scheme, e.g. Flat Rate VAT</span><input name="scheme" defaultValue={c.vat_scheme ?? ''} className="input" /></label>
+      <div className="text-sm text-slate-600 sm:pb-2 dark:text-slate-300">{Number(c.default_vat_pct)}%{c.vat_scheme ? ` ${c.vat_scheme}` : ' VAT'}</div>
+      <div className="flex items-center gap-2"><button className="btn" disabled={pending}>Save</button><Msg s={s} /></div>
     </form>
   );
 }

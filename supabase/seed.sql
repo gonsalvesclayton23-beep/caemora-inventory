@@ -1,14 +1,15 @@
 -- Reference data. Safe to re-run.
 
-insert into companies (code, name, aliases, notes) values
-  ('CMR', 'Caemora Ltd',  '{caemora,cmr,caemora-amex,caemora-debit}', null),
-  ('ARC', 'ARC',          '{arc,arc-wise}', null),
-  ('GOE', 'Goenche Ltd',  '{goenche,goe}', null),
-  ('YD',  'YouDent',      '{yd,yd-ebay,youdent,youdent ltd,ydent,ebay,yd-wise}', 'Sells as YD-eBay'),
-  ('ALS', 'Al Store',     '{als,alstore,al store}', null),
-  ('GEN', 'Gentech',      '{gentech}', 'Sole-trader eBay store'),
-  ('GOA', 'Goa Sales',    '{goa sales,goa}', null)
-on conflict (code) do update set name = excluded.name, aliases = excluded.aliases, notes = excluded.notes;
+insert into companies (code, name, sort_order, default_vat_pct, vat_scheme, aliases, notes) values
+  ('CMR', 'Caemora Ltd',  1, 7.5, 'Flat Rate VAT', '{caemora,cmr,caemora-amex,caemora-debit}', null),
+  ('ARC', 'ARC UK G Ltd', 2, 7.5, 'Flat Rate VAT', '{arc,arc-wise,arc uk g ltd}', null),
+  ('YD',  'Youdent Ltd',  3, 0,   null, '{yd,yd-ebay,youdent,youdent ltd,ydent,ebay,yd-wise}', 'Sells as YD-eBay'),
+  ('GOE', 'Goenche Ltd',  4, 0,   null, '{goenche,goe}', null),
+  ('GOA', 'Goasales',     5, 0,   null, '{goa sales,goasales,goa}', null),
+  ('GEN', 'Gentech',      6, 0,   null, '{gentech}', 'Sole-trader eBay store'),
+  ('ALS', 'Al Store',     7, 0,   null, '{als,alstore,al store}', null)
+on conflict (code) do update set name = excluded.name, sort_order = excluded.sort_order, aliases = excluded.aliases, notes = excluded.notes;
+-- (Default VAT is only set when a company is first created; after that an admin changes it in the app.)
 
 insert into vendors (name, kind, country, default_currency, aliases, notes) values
   ('Peace Enterprises', 'india_partner', 'IN', 'INR', '{peace,peace entrp,peace enterprises}', 'India buying partner'),
