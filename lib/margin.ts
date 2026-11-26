@@ -1,7 +1,24 @@
 // Margins (MRG-01..MRG-08): the calculations. Pure functions, used by the screens, the export and the tests.
 // Only inputs are stored (margin_lines); every figure here is worked out from them each time it is shown.
 
-export type Channel = 'AMAZON' | 'EBAY';
+export type Channel = 'AMAZON' | 'EBAY' | 'SHOPIFY' | 'ONBUY' | 'ETSY';
+export type OtherPlatform = 'SHOPIFY' | 'ONBUY' | 'ETSY';
+
+/** MRG-09: every platform, in the order shown. */
+export const PLATFORMS: readonly { code: Channel; label: string }[] = [
+  { code: 'AMAZON', label: 'Amazon' }, { code: 'EBAY', label: 'eBay' }, { code: 'SHOPIFY', label: 'Shopify' },
+  { code: 'ONBUY', label: 'OnBuy' }, { code: 'ETSY', label: 'Etsy' },
+];
+export const platformLabel = (c: string) => PLATFORMS.find((p) => p.code === c)?.label ?? c;
+
+/** Shopify, OnBuy and Etsy fees (settings, admin-editable). */
+export interface PlatformFees {
+  feePct: number; fixedFee: number; paymentPct: number; paymentFixed: number; feeVatPct: number; shipping: number; misc: number;
+}
+const NO_FEES: PlatformFees = { feePct: 0, fixedFee: 0, paymentPct: 0, paymentFixed: 0, feeVatPct: 0, shipping: 2.76, misc: 0.05 };
+const PLATFORM_FEE_KEYS: Record<keyof PlatformFees, string> = {
+  feePct: 'fee_pct', fixedFee: 'fixed_fee', paymentPct: 'payment_pct', paymentFixed: 'payment_fixed', feeVatPct: 'fee_vat_pct', shipping: 'shipping', misc: 'misc',
+};
 export type Cur = 'INR' | 'GBP' | 'USD' | 'CNY';
 
 export interface MarginSettings {
@@ -13,14 +30,16 @@ export interface MarginSettings {
   ebayLocalShipping: number;  // default for new eBay lines
   ebayMisc: number;           // default for new eBay lines
   roiTargetPct: number;
+  platforms: Record<OtherPlatform, PlatformFees>;
 }
 
 export const DEFAULT_MARGIN_SETTINGS: MarginSettings = {
   feeVatPct: 20, fbaSurchargePct: 2, dstPct: 2, ebayFeePct: 12.8, ebayFixedFee: 0.3, ebayLocalShipping: 2.76, ebayMisc: 0.05, roiTargetPct: 25,
+  platforms: { SHOPIFY: { ...NO_FEES }, ONBUY: { ...NO_FEES }, ETSY: { ...NO_FEES } },
 };
 
 /** settings table key → MarginSettings field */
-export const SETTING_KEYS: Record<keyof MarginSettings, string> = {
+export const SETTING_KEYS: Record<Exclude<keyof MarginSettings, 'platforms'>, string> = {
   feeVatPct: 'margin_fee_vat_pct',
   fbaSurchargePct: 'margin_fba_surcharge_pct',
   dstPct: 'margin_dst_pct',
@@ -33,10 +52,16 @@ export const SETTING_KEYS: Record<keyof MarginSettings, string> = {
 
 export function settingsFromRows(rows: { key: string; value: unknown }[]): MarginSettings {
   const map = new Map(rows.map((r) => [r.key, Number(r.value)]));
-  const out = { ...DEFAULT_MARGIN_SETTINGS };
-  for (const [field, key] of Object.entries(SETTING_KEYS) as [keyof MarginSettings, string][]) {
+  const out: MarginSettings = { ...DEFAULT_MARGIN_SETTINGS, platforms: { SHOPIFY: { ...NO_FEES }, ONBUY: { ...NO_FEES }, ETSY: { ...NO_FEES } } };
+  for (const [field, key] of Object.entries(SETTING_KEYS) as [Exclude<keyof MarginSettings, 'platforms'>, string][]) {
     const v = map.get(key);
     if (v != null && Number.isFinite(v)) out[field] = v;
+  }
+  for (const pl of ['SHOPIFY', 'ONBUY', 'ETSY'] as const) {
+    for (const [field, k] of Object.entries(PLATFORM_FEE_KEYS) as [keyof PlatformFees, string][]) {
+      const v = map.get(`margin_${pl.toLowerCase()}_${k}`);
+      if (v != null && Number.isFinite(v)) out.platforms[pl][field] = v;
+    }
   }
   return out;
 }
@@ -64,7 +89,7 @@ export interface MarginInput {
 export interface MarginResult {
   landed: number;
   referralFee: number; referralFeeVat: number; fbaFee: number; fbaFeeVat: number; fbaSurcharge: number; digitalServicesTax: number; promo: number;
-  localShipping: number; miscExpense: number; ebayFees: number; adFees: number;
+  localShipping: number; miscExpense: number; ebayFees: number; platformFees: number; adFees: number;
   costBeforeTax: number; taxPct: number; tax: number; finalCost: number; profit: number;
   roi: number | null;         // %, null when the landed cost is 0
   belowTarget: boolean;
@@ -86,7 +111,7 @@ export function computeMargin(i: MarginInput, s: MarginSettings): MarginResult {
   const tax = P * taxPct / 100;
   const r: MarginResult = {
     landed, referralFee: 0, referralFeeVat: 0, fbaFee: 0, fbaFeeVat: 0, fbaSurcharge: 0, digitalServicesTax: 0, promo: 0,
-    localShipping: 0, miscExpense: 0, ebayFees: 0, adFees: 0, costBeforeTax: 0, taxPct, tax, finalCost: 0, profit: 0, roi: null, belowTarget: false,
+    localShipping: 0, miscExpense: 0, ebayFees: 0, platformFees: 0, adFees: 0, costBeforeTax: 0, taxPct, tax, finalCost: 0, profit: 0, roi: null, belowTarget: false,
   };
   if (i.channel === 'AMAZON') {
     r.referralFee = P * n(i.referralPct) / 100;
@@ -97,12 +122,21 @@ export function computeMargin(i: MarginInput, s: MarginSettings): MarginResult {
     r.digitalServicesTax = (r.referralFee + r.fbaFee) * s.dstPct / 100;
     r.promo = n(i.promoPerUnit);
     r.costBeforeTax = landed + r.referralFee + r.referralFeeVat + r.fbaFee + r.fbaFeeVat + r.fbaSurcharge + r.digitalServicesTax + r.promo;
-  } else {
+  } else if (i.channel === 'EBAY') {
     r.localShipping = n(i.localShipping);
     r.miscExpense = n(i.miscExpense);
     r.ebayFees = (P * s.ebayFeePct / 100 + s.ebayFixedFee) * (1 + vat);
     r.adFees = P * n(i.adPct) / 100 * (1 + vat);
     r.costBeforeTax = landed + r.localShipping + r.miscExpense + r.ebayFees + r.adFees;
+  } else {
+    // MRG-09: Shopify, OnBuy, Etsy: platform fee % + fixed fee + payment processing (% + £), with that platform's VAT on fees
+    const f = s.platforms[i.channel];
+    const pvat = f.feeVatPct / 100;
+    r.localShipping = n(i.localShipping);
+    r.miscExpense = n(i.miscExpense);
+    r.platformFees = (P * f.feePct / 100 + f.fixedFee + P * f.paymentPct / 100 + f.paymentFixed) * (1 + pvat);
+    r.adFees = P * n(i.adPct) / 100 * (1 + pvat);
+    r.costBeforeTax = landed + r.localShipping + r.miscExpense + r.platformFees + r.adFees;
   }
   r.finalCost = r.costBeforeTax + tax;
   r.profit = P - r.finalCost;
@@ -125,8 +159,11 @@ export function lowestPriceForRoi(i: MarginInput, s: MarginSettings, targetPct =
   if (i.channel === 'AMAZON') {
     const ref = n(i.referralPct) / 100;
     share = ref * (1 + vat) + ref * s.dstPct / 100 + tax;
-  } else {
+  } else if (i.channel === 'EBAY') {
     share = (s.ebayFeePct / 100) * (1 + vat) + (n(i.adPct) / 100) * (1 + vat) + tax;
+  } else {
+    const f = s.platforms[i.channel], pvat = f.feeVatPct / 100;
+    share = ((f.feePct + f.paymentPct) / 100) * (1 + pvat) + (n(i.adPct) / 100) * (1 + pvat) + tax;
   }
   if (share >= 1) return null;
   // base.finalCost at price 0 is exactly the fixed part
@@ -207,7 +244,7 @@ export interface MarginLineRow {
   product_cost: number | string; product_cost_currency: Cur; courier_cost: number | string; courier_currency: Cur;
   referral_pct: number | string | null; fba_fee: number | string | null; promo_per_unit: number | string | null;
   local_shipping: number | string | null; misc_expense: number | string | null; ad_pct: number | string | null;
-  selling_price: number | string; tax_override_pct: number | string | null;
+  selling_price: number | string | null; hidden?: boolean; margin_product_id?: number; tax_override_pct: number | string | null;
   fx_rate: number | string; fx_rate_date: string | null; fx_source: string | null; updated_at?: string;
 }
 
@@ -230,7 +267,7 @@ export const EXPORT_COLUMNS = [
   'product_cost', 'product_cost_currency', 'courier_cost', 'courier_currency', 'fx_rate', 'fx_rate_label',
   'referral_pct', 'fba_fee', 'promo_per_unit', 'local_shipping', 'misc_expense', 'ad_pct', 'selling_price', 'tax_rate',
   'landed_cost', 'referral_fee', 'referral_fee_vat', 'fba_fee_vat', 'fba_surcharge', 'digital_services_tax', 'ebay_fees', 'ad_fees',
-  'cost_before_tax', 'tax', 'final_cost', 'profit', 'roi_pct', 'status', 'lowest_price_for_target',
+  'platform_fees', 'cost_before_tax', 'tax', 'final_cost', 'profit', 'roi_pct', 'status', 'lowest_price_for_target',
 ] as const;
 
 const d2 = (v: number | null) => (v == null ? '' : round2(v).toFixed(2));
@@ -241,7 +278,7 @@ export function exportRow(r: MarginLineRow, s: MarginSettings): Record<(typeof E
   const amazon = r.channel === 'AMAZON';
   const low = lowestPriceForRoi(i, s);
   return {
-    name: r.name, company: r.company_code, company_name: r.company_name, channel: amazon ? 'Amazon' : 'eBay',
+    name: r.name, company: r.company_code, company_name: r.company_name, channel: platformLabel(r.channel),
     asin: r.asin, fnsku: r.fnsku, listing_status: r.listing_status === 'listed' ? 'Listed' : 'Not listed', owner: r.owner, notes: r.notes,
     product_cost: i.productCost, product_cost_currency: i.productCostCurrency, courier_cost: i.courierCost, courier_currency: i.courierCurrency,
     fx_rate: i.fxRate, fx_rate_label: fxLabel(r.fx_source, r.fx_rate_date),
@@ -251,9 +288,90 @@ export function exportRow(r: MarginLineRow, s: MarginSettings): Record<(typeof E
     landed_cost: d2(m.landed),
     referral_fee: amazon ? d2(m.referralFee) : '', referral_fee_vat: amazon ? d2(m.referralFeeVat) : '', fba_fee_vat: amazon ? d2(m.fbaFeeVat) : '',
     fba_surcharge: amazon ? d2(m.fbaSurcharge) : '', digital_services_tax: amazon ? d2(m.digitalServicesTax) : '',
-    ebay_fees: amazon ? '' : d2(m.ebayFees), ad_fees: amazon ? '' : d2(m.adFees),
+    ebay_fees: r.channel === 'EBAY' ? d2(m.ebayFees) : '', ad_fees: amazon ? '' : d2(m.adFees),
+    platform_fees: amazon || r.channel === 'EBAY' ? '' : d2(m.platformFees),
     cost_before_tax: d2(m.costBeforeTax), tax: d2(m.tax), final_cost: d2(m.finalCost), profit: d2(m.profit), roi_pct: d2(m.roi),
     status: roiStatus(m.roi, s.roiTargetPct).label,
     lowest_price_for_target: low == null ? 'Target not reachable' : d2(low),
   };
+}
+
+// ---------------------------------------------------------------- MRG-09: one product line, every platform
+
+export interface ProductCosts { productCost: number; productCostCurrency: Cur; courierCost: number; courierCurrency: Cur; fxRate: number }
+
+export interface PlatformEntry {
+  channel: Channel; companyCode: string; companyName?: string; companyVatPct: number; ownTaxPct: number | null;
+  sellingPrice: number | null; hidden?: boolean;
+  referralPct?: number | null; fbaFee?: number | null; promoPerUnit?: number | null;
+  localShipping?: number | null; miscExpense?: number | null; adPct?: number | null;
+}
+
+export interface ComparisonRow {
+  channel: Channel; label: string; companyCode: string | null; companyName: string | null;
+  state: 'priced' | 'not_priced'; stateLabel: string;
+  price: number | null; result: MarginResult | null;
+  fees: number | null;           // everything between landed cost and tax, apart from shipping and misc
+  shippingMisc: number | null;
+  status: { label: string; tone: 'red' | 'green' | 'grey' };
+  best: boolean; feesNotSetUp: boolean; lowest: number | null;
+}
+
+/** Shopify, OnBuy or Etsy with every fee still at 0. */
+export const feesNotSetUp = (channel: Channel, s: MarginSettings) => {
+  if (channel === 'AMAZON' || channel === 'EBAY') return false;
+  const f = s.platforms[channel];
+  return !f.feePct && !f.fixedFee && !f.paymentPct && !f.paymentFixed;
+};
+
+export const entryInput = (c: ProductCosts, e: PlatformEntry): MarginInput => ({
+  ...c, channel: e.channel, sellingPrice: n(e.sellingPrice), companyVatPct: n(e.companyVatPct), ownTaxPct: e.ownTaxPct,
+  referralPct: e.referralPct, fbaFee: e.fbaFee, promoPerUnit: e.promoPerUnit, localShipping: e.localShipping, miscExpense: e.miscExpense, adPct: e.adPct,
+});
+
+/** MRG-09 AC1-AC5: one row per platform that is not hidden, worked out from the one set of costs. */
+export function compareProduct(c: ProductCosts, entries: PlatformEntry[], s: MarginSettings) {
+  const landed = toGbp(c.productCost, c.productCostCurrency, c.fxRate) + toGbp(c.courierCost, c.courierCurrency, c.fxRate);
+  const byChannel = new Map(entries.map((e) => [e.channel, e]));
+  const hidden = PLATFORMS.filter((p) => byChannel.get(p.code)?.hidden).map((p) => p.code);
+  const rows: ComparisonRow[] = PLATFORMS.filter((p) => !byChannel.get(p.code)?.hidden).map((p) => {
+    const e = byChannel.get(p.code);
+    const priced = e != null && e.sellingPrice != null && Number.isFinite(Number(e.sellingPrice));
+    const base = { channel: p.code, label: p.label, companyCode: e?.companyCode ?? null, companyName: e?.companyName ?? null, feesNotSetUp: feesNotSetUp(p.code, s) };
+    if (!priced) {
+      return { ...base, state: 'not_priced' as const, stateLabel: 'Not priced', price: null, result: null, fees: null, shippingMisc: null,
+        status: { label: 'Not priced', tone: 'grey' as const }, best: false, lowest: e ? lowestPriceForRoi(entryInput(c, e), s) : null };
+    }
+    const i = entryInput(c, e!);
+    const m = computeMargin(i, s);
+    const shippingMisc = m.localShipping + m.miscExpense;
+    return { ...base, state: 'priced' as const, stateLabel: 'Priced', price: Number(e!.sellingPrice), result: m,
+      fees: m.costBeforeTax - m.landed - shippingMisc, shippingMisc, status: roiStatus(m.roi, s.roiTargetPct), best: false, lowest: lowestPriceForRoi(i, s) };
+  });
+  // AC3: the highest ROI is "Best return" (all of them if tied)
+  const rois = rows.map((r) => r.result?.roi).filter((x): x is number => x != null);
+  if (rois.length) {
+    const top = Math.max(...rois);
+    for (const r of rows) if (r.result?.roi != null && round2(r.result.roi) === round2(top)) r.best = true;
+  }
+  return { landed, rows, hidden };
+}
+
+/** Name key for spotting the same product typed twice: case, spacing and punctuation ignored. */
+export const matchKey = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+/** MRG-09 AC6: likely matches between product lines: same ASIN or same name, and no platform in common. */
+export function findMatches(lines: { id: number; name: string; asin: string | null; channels: Channel[] }[]) {
+  const out: { a: number; b: number; reason: 'asin' | 'name' }[] = [];
+  const sorted = [...lines].sort((x, y) => x.id - y.id);
+  for (let i = 0; i < sorted.length; i++) {
+    for (let j = i + 1; j < sorted.length; j++) {
+      const x = sorted[i], y = sorted[j];
+      if (x.channels.some((c) => y.channels.includes(c))) continue;
+      const asin = x.asin && y.asin && x.asin.trim().toUpperCase() === y.asin.trim().toUpperCase();
+      const name = matchKey(x.name) !== '' && matchKey(x.name) === matchKey(y.name);
+      if (asin || name) out.push({ a: x.id, b: y.id, reason: asin ? 'asin' : 'name' });
+    }
+  }
+  return out;
 }

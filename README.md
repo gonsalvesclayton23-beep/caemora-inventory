@@ -60,7 +60,7 @@ Selling one product through several companies' accounts is normal: a product has
 | Flags | all (data entry: purchase & shipment flags) | Inbox; admins acknowledge or resolve |
 | Reconciliation | admin, viewer | Per supplier and month: each company's opening, purchases, credit notes, payments, closing; payments with the paying account; add payments and credit notes; settle or reopen the month |
 | Landed cost | admin, viewer | ₹ and £ per unit by product, company and month; per unit received; CSV export |
-| Margins | all (admin edits) | Amazon and eBay tabs: landed cost, fees, tax, profit and ROI per product and company, worked out live; lowest price for the ROI target; fees and ROI target; price and settings history; CSV export. Separate from purchases, shipments and payments |
+| Margins | all (admin edits) | One line per product: costs and exchange rate entered once, then price, company and fees per platform (Amazon, eBay, Shopify, OnBuy, Etsy), compared side by side with profit, ROI, "Best return" and "Below target"; lowest price for the ROI target; possible matches to merge (admin confirms each); fees and ROI target per platform; price and settings history; CSV export. Separate from purchases, shipments and payments |
 | Admin | admin | Users and roles, flag thresholds, ₹/£ overrides, mark old flags as seen |
 
 ## Setting up (one-off)

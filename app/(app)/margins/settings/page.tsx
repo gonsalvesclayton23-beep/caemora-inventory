@@ -5,6 +5,14 @@ import { MarginSettingsForm } from '../forms';
 import { marginSettings } from '../data';
 
 export const dynamic = 'force-dynamic';
+
+const OTHER = /^margin_(shopify|onbuy|etsy)_/;
+const GROUPS = [
+  { title: 'Amazon, eBay and ROI target', platform: false, test: (k: string) => !OTHER.test(k) },
+  { title: 'Shopify', platform: true, test: (k: string) => k.startsWith('margin_shopify_') },
+  { title: 'OnBuy', platform: true, test: (k: string) => k.startsWith('margin_onbuy_') },
+  { title: 'Etsy', platform: true, test: (k: string) => k.startsWith('margin_etsy_') },
+];
 export const metadata = { title: 'Margin fees and ROI target' };
 
 export default async function MarginSettingsPage() {
@@ -21,7 +29,16 @@ export default async function MarginSettingsPage() {
       <Link href="/margins" className="text-sm text-slate-500 hover:underline">← Margins</Link>
       <h1 className="text-2xl font-semibold">Fees and ROI target</h1>
       <p className="text-sm text-slate-500">Used by every margin line. A change recalculates all lines straight away. {admin ? '' : 'Only an admin can change these.'}</p>
-      <div className="card"><MarginSettingsForm rows={rows.map((r) => ({ ...r, value: Number(r.value) }))} canEdit={admin} /></div>
+      {GROUPS.map((g) => {
+        const these = rows.filter((r) => g.test(r.key));
+        const notSet = g.platform && these.filter((r) => /_(fee_pct|fixed_fee|payment_pct|payment_fixed)$/.test(r.key)).every((r) => Number(r.value) === 0);
+        return (
+          <div key={g.title} className="card space-y-2">
+            <h2 className="font-medium">{g.title}{notSet && <span className="ml-2 text-sm font-normal text-amber-600 dark:text-amber-400">Fees not set up</span>}</h2>
+            <MarginSettingsForm rows={these.map((r) => ({ ...r, value: Number(r.value) }))} canEdit={admin} />
+          </div>
+        );
+      })}
       <div className="card">
         <h2 className="mb-2 font-medium">Changes</h2>
         {history?.length ? (
