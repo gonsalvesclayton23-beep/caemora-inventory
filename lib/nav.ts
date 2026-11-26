@@ -1,5 +1,5 @@
 // The app's name and its menu, in one place.
-export const APP_NAME = 'Caemora Inventory Management System';
+export const APP_NAME = 'CIMS - (Caemora Inventory Management System)';
 
 /** who: all = everyone; money = admin and viewer (not data entry); admin = admins only */
 export const NAV: { href: string; label: string; who: 'all' | 'money' | 'admin' }[] = [
