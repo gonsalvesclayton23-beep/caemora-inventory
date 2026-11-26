@@ -23,5 +23,6 @@ $PSQL -d caemora_test -f supabase/tests/tests.sql >/dev/null
 $PSQL -d caemora_test -f supabase/tests/pur06.sql >/dev/null
 $PSQL -d caemora_test -f supabase/tests/ui04.sql >/dev/null
 $PSQL -d caemora_test -f supabase/tests/companies.sql >/dev/null
+$PSQL -d caemora_test -f supabase/tests/margins.sql >/dev/null
 echo "All database tests passed."
 if [ "${1:-}" != "--keep" ]; then $RUNAS "$PGBIN/pg_ctl" -D "$DATA" stop >/dev/null; fi
