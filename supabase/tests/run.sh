@@ -25,6 +25,7 @@ $PSQL -d caemora_test -f supabase/tests/ui04.sql >/dev/null
 $PSQL -d caemora_test -f supabase/tests/companies.sql >/dev/null
 $PSQL -d caemora_test -f supabase/tests/margins.sql >/dev/null
 $PSQL -d caemora_test -f supabase/tests/mrg09.sql >/dev/null
+$PSQL -d caemora_test -f supabase/tests/audit.sql >/dev/null
 # MRG-09 AC6: upgrade a database that already has margin lines
 $PSQL -d postgres -c "drop database if exists caemora_upgrade" -c "create database caemora_upgrade"
 $PSQL -d caemora_upgrade -f supabase/tests/auth_stub.sql
