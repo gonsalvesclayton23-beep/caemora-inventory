@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { canViewMoney, getProfile, isAdmin } from '@/lib/auth';
-import { referenceData } from '@/lib/data';
+import { byCompanyOrder, referenceData } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { dateLabel, money, monthLabel } from '@/lib/format';
 import { confirmPayment, settleMonth } from './actions';
@@ -68,7 +68,7 @@ export default async function ReconciliationPage({ searchParams }: { searchParam
         <table className="table">
           <thead><tr><th>Company</th><th className="num">Opening</th><th className="num">Purchases</th><th className="num">Credit notes</th><th className="num">Paid</th><th className="num">Unconfirmed</th><th className="num">Closing due</th></tr></thead>
           <tbody>
-            {(rows ?? []).map((r: any) => <Row key={`${r.company_code}${r.currency}`} r={r} label={r.company_code ?? 'All companies (credit notes)'} />)}
+            {[...(rows ?? [])].sort((a: any, b: any) => byCompanyOrder(companies)(a.company_code ?? 'zz', b.company_code ?? 'zz')).map((r: any) => <Row key={`${r.company_code}${r.currency}`} r={r} label={r.company_code ?? 'All companies (credit notes)'} />)}
             {(total ?? []).map((t: any) => <Row key={t.currency} r={t} label={`Total ${t.currency === 'INR' ? '₹' : '£'}`} bold />)}
           </tbody>
         </table>

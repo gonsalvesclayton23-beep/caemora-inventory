@@ -9,12 +9,12 @@ export interface Option { value: string; label: string }
 export async function referenceData() {
   const supabase = await createClient();
   const [companies, vendors, periods] = await Promise.all([
-    supabase.from('companies').select('code, name').eq('active', true).order('code'),
+    supabase.from('companies').select('code, name, default_vat_pct, vat_scheme').eq('active', true).order('sort_order').order('code'),
     supabase.from('vendors').select('id, name, default_currency, kind').eq('active', true).order('name'),
     supabase.from('periods').select('month, status').order('month', { ascending: false }),
   ]);
   return {
-    companies: (companies.data ?? []) as { code: string; name: string }[],
+    companies: (companies.data ?? []) as { code: string; name: string; default_vat_pct: number; vat_scheme: string | null }[],
     vendors: (vendors.data ?? []) as { id: number; name: string; default_currency: 'INR' | 'GBP'; kind: string }[],
     periods: (periods.data ?? []) as { month: string; status: 'open' | 'settled' }[],
   };
@@ -39,4 +39,11 @@ export async function getSettings() {
     suspectInrBelow: map.get('suspect_inr_price_below') ?? 20,
     rateTolerancePct: map.get('rate_card_tolerance_pct') ?? 0,
   };
+}
+
+/** Sort helper: lists of companies follow the companies' own order (CMR, ARC, YD, GOE, GOA, GEN, ALS). */
+export function byCompanyOrder(companies: { code: string }[]) {
+  const pos = new Map(companies.map((c, i) => [c.code, i]));
+  return (a: string | null | undefined, b: string | null | undefined) =>
+    (pos.get(a ?? '') ?? 99) - (pos.get(b ?? '') ?? 99) || String(a ?? '').localeCompare(String(b ?? ''));
 }

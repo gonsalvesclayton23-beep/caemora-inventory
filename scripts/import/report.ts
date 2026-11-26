@@ -48,7 +48,7 @@ export function writeReport(dir: string, parsed: Parsed, built: Built, issues: I
 
   // ---------------------------------------------------------------- reconciliation preview (Peace, ₹)
   const months = [...new Set(parsed.lines.map((l) => l.month))].filter((m) => m.startsWith('2026')).sort();
-  const companies = ['CMR', 'ARC', 'GOE', 'YD', 'ALS', 'GEN', 'GOA'];
+  const companies = ['CMR', 'ARC', 'YD', 'GOE', 'GOA', 'GEN', 'ALS'];
   const peaceLine = (l: Parsed['lines'][number]) => l.currency === 'INR' && (!l.vendor || l.vendor === 'Peace Enterprises');
   // overall, all companies together: the real balance with Peace
   const overall: string[] = ['| Month | Opening | Purchases | Credit notes | Paid | Unconfirmed | Closing due |', '|---|--:|--:|--:|--:|--:|--:|'];

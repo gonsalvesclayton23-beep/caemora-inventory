@@ -65,3 +65,13 @@ export async function updateRateCard(_: unknown, f: FormData): Promise<Result> {
   revalidatePath('/products');
   return { ok: true };
 }
+
+/** Default VAT per company (admin only; every change is kept in the change history). */
+export async function updateVat(_: unknown, f: FormData): Promise<Result> {
+  const supabase = await createClient();
+  const vat = Number(String(f.get('vat') ?? '').replace('%', '').trim());
+  if (!Number.isFinite(vat)) return { error: 'Enter the VAT as a number, e.g. 7.5' };
+  const { error } = await supabase.rpc('set_vat', { p_code: String(f.get('code')), p_vat: vat, p_scheme: String(f.get('scheme') ?? '') });
+  revalidatePath('/admin');
+  return error ? { error: friendlyError(error) } : { ok: true };
+}

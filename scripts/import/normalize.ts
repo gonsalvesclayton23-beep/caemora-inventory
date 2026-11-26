@@ -10,12 +10,12 @@ export interface Issue {
 
 export const COMPANY_ALIASES: Record<string, string> = {
   caemora: 'CMR', cmr: 'CMR', 'caemora -amex': 'CMR', 'caemora-amex': 'CMR', 'caemora-debit': 'CMR',
-  arc: 'ARC', 'arc-wise': 'ARC',
+  arc: 'ARC', 'arc-wise': 'ARC', 'arc uk g ltd': 'ARC',
   goenche: 'GOE', goe: 'GOE',
   yd: 'YD', 'yd-ebay': 'YD', youdent: 'YD', 'youdent ltd': 'YD', ydent: 'YD', ebay: 'YD', 'yd-wise': 'YD',
   als: 'ALS', alstore: 'ALS', 'al store': 'ALS',
   gentech: 'GEN',
-  'goa sales': 'GOA', goa: 'GOA',
+  'goa sales': 'GOA', goasales: 'GOA', goa: 'GOA',
 };
 
 export function companyCode(raw: unknown): string | null {
