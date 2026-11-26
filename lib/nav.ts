@@ -12,5 +12,6 @@ export const NAV: { href: string; label: string; who: 'all' | 'money' | 'admin' 
   { href: '/reconciliation', label: 'Reconciliation', who: 'money' },
   { href: '/landed-cost', label: 'Landed cost', who: 'money' },
   { href: '/margins', label: 'Product margins', who: 'all' },
+  { href: '/audit', label: 'Audit log', who: 'admin' },
   { href: '/admin', label: 'Admin', who: 'admin' },
 ];
