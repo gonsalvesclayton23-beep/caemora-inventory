@@ -39,7 +39,7 @@ export default async function MatchesPage() {
 
   return (
     <div className="space-y-4">
-      <Link href="/margins" className="text-sm text-slate-500 hover:underline">← Margins</Link>
+      <Link href="/margins" className="text-sm text-slate-500 hover:underline">← Product margins</Link>
       <h1 className="text-2xl font-semibold">Possible matches</h1>
       <p className="text-sm text-slate-500">
         These lines have the same ASIN or the same name and are on different platforms. Nothing is merged until you confirm it.

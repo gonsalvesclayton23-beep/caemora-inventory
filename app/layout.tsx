@@ -1,8 +1,9 @@
+import { APP_NAME } from '@/lib/nav';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: { default: 'Caemora Inventory', template: '%s · Caemora Inventory' },
+  title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
   description: 'Purchases, shipments, landed cost and reconciliation',
 };
 

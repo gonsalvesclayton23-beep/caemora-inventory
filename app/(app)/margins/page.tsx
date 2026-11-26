@@ -8,7 +8,7 @@ import { marginSettings } from './data';
 import { loadProducts } from './load';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Margins' };
+export const metadata = { title: 'Product margins' };
 
 const SORTS: Record<string, string> = { name: 'Product', landed: 'Landed', best_roi: 'Best ROI', worst_roi: 'Lowest ROI',
   ...Object.fromEntries(PLATFORMS.map((p) => [`roi_${p.code}`, `${p.label} ROI`])) };
@@ -55,7 +55,7 @@ export default async function MarginsPage({ searchParams }: { searchParams: Prom
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Margins</h1>
+        <h1 className="text-2xl font-semibold">Product margins</h1>
         <div className="flex flex-wrap gap-2">
           <Link href="/margins/settings" className="btn-ghost border border-slate-300 dark:border-slate-700">Fees and ROI target</Link>
           <a href={`/margins/export?${exportQs}`} className="btn-ghost border border-slate-300 dark:border-slate-700">Export CSV</a>

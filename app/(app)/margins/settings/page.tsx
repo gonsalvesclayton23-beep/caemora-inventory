@@ -13,7 +13,7 @@ const GROUPS = [
   { title: 'OnBuy', platform: true, test: (k: string) => k.startsWith('margin_onbuy_') },
   { title: 'Etsy', platform: true, test: (k: string) => k.startsWith('margin_etsy_') },
 ];
-export const metadata = { title: 'Margin fees and ROI target' };
+export const metadata = { title: 'Product margins: fees and ROI target' };
 
 export default async function MarginSettingsPage() {
   const me = await getProfile();
@@ -26,7 +26,7 @@ export default async function MarginSettingsPage() {
   const label = new Map(rows.map((r) => [r.key, (r.description ?? r.key).replace(/^Margins: /, '')]));
   return (
     <div className="space-y-4">
-      <Link href="/margins" className="text-sm text-slate-500 hover:underline">← Margins</Link>
+      <Link href="/margins" className="text-sm text-slate-500 hover:underline">← Product margins</Link>
       <h1 className="text-2xl font-semibold">Fees and ROI target</h1>
       <p className="text-sm text-slate-500">Used by every margin line. A change recalculates all lines straight away. {admin ? '' : 'Only an admin can change these.'}</p>
       {GROUPS.map((g) => {

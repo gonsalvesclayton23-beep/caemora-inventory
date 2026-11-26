@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getProfile, canViewMoney, isAdmin } from '@/lib/auth';
 import { signOut } from '@/app/login/actions';
+import { APP_NAME, NAV } from '@/lib/nav';
 
 const ROLE_LABEL = { admin: 'Admin', data_entry: 'Data entry', viewer: 'Viewer' } as const;
 
@@ -20,23 +21,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
 
-  const nav = [
-    { href: '/', label: 'Dashboard', show: true },
-    { href: '/purchases', label: 'Purchases', show: true },
-    { href: '/shipments', label: 'Shipments', show: true },
-    { href: '/invoices', label: 'Invoices', show: true },
-    { href: '/products', label: 'Products', show: true },
-    { href: '/flags', label: 'Flags', show: true },
-    { href: '/reconciliation', label: 'Reconciliation', show: canViewMoney(me) },
-    { href: '/landed-cost', label: 'Landed cost', show: canViewMoney(me) },
-    { href: '/margins', label: 'Margins', show: true },
-    { href: '/admin', label: 'Admin', show: isAdmin(me) },
-  ].filter((n) => n.show);
+  const nav = NAV.filter((n) => n.who === 'all' || (n.who === 'money' ? canViewMoney(me) : isAdmin(me)));
 
   return (
     <div className="min-h-dvh md:flex">
       <aside className="hidden w-56 shrink-0 border-r border-slate-200 bg-white p-4 md:block dark:border-slate-800 dark:bg-slate-900">
-        <div className="mb-6 font-semibold">Caemora Inventory</div>
+        <div className="mb-6 font-semibold leading-snug">{APP_NAME}</div>
         <nav className="space-y-1">
           {nav.map((n) => (
             <Link key={n.href} href={n.href} className="block rounded-lg px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">{n.label}</Link>
@@ -51,7 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       {/* phone: top bar with the remaining screens, account and sign out */}
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2 text-sm md:hidden dark:border-slate-800 dark:bg-slate-900">
-        <span className="font-semibold">Caemora</span>
+        <span className="truncate font-semibold">{APP_NAME}</span>
         <details className="relative">
           <summary className="cursor-pointer list-none rounded-lg px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800">{me.full_name.split(' ')[0]} ▾</summary>
           <div className="absolute right-0 z-20 mt-1 w-48 rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-slate-900">
