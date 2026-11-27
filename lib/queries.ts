@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 
 export type SP = Record<string, string | undefined>;
 
-const LINE_COLUMNS = 'id, period_month, company_code, product_name, fnsku, qty, unit_price, courier_per_unit, currency, line_total, line_total_gbp, line_total_inr, invoice_no, invoice_date, vendor_name, shipment_status, amazon_shipment_id, tracking_no, defective_qty, short_qty, received_qty, remarks';
+const LINE_COLUMNS = 'id, shipment_id, period_month, company_code, product_name, fnsku, qty, unit_price, courier_per_unit, currency, line_total, line_total_gbp, line_total_inr, invoice_no, invoice_date, vendor_name, shipment_status, amazon_shipment_id, tracking_no, defective_qty, short_qty, received_qty, remarks';
 const PAGE = 1000; // the most rows Supabase returns per request by default
 
 /** Purchase lines for the filters. NFR-09: fetched in pages, so "All months" returns every line up to `limit`. */
