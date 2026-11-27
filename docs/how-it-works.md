@@ -68,7 +68,7 @@ New logins start **inactive**: an admin sets the role and ticks Active. All of t
 - **Boxes (PUR-06).** Lines are put into boxes. A line can be split over several boxes ("30 of 50"). An Amazon (FBA) box holds one company's stock; Home boxes may mix companies. A box's contents can change only while it is **In transit**.
 - **Destination (SHP-08).** Each box is **Amazon warehouse** (it has an FBA… ID) or **Home (UK)**. Only an admin can change it.
 - **Receiving (SHP-08).** "**Received**" = every unit that arrived, damaged ones included. **Short = sent − received.** **Defective** is entered separately. Admins and the India team can enter or correct counts at any time, including for settled months; each count records who and when, and every change is kept in the box's count history. Entering more than was sent is refused (over-delivery is not handled yet).
-- **Purchases tab (PUR-07).** Shows each month grouped by shipment, newest first. A split line appears under each box with that box's units and share of the value. A shipment's lines from other months are not mixed in; its header says, for example, "+3 lines in Oct 2026". A box in transit shows no received count.
+- **Purchases tab (PUR-07).** Shows each month grouped by shipment, newest first. A split line appears under each box with that box's units and share of the value. A shipment's lines from other months are not mixed in; its header says, for example, "+3 lines in Oct 2026". A box in transit shows no received count. Each shipment ends with a **total row** (PUR-07 AC7): total units, goods (price × units), courier paid (courier × units) and the total, one row per currency.
 
 ## 6. Money
 
@@ -169,4 +169,5 @@ Updates so far, in order: dashboard and invoices (22 Nov) → boxes (25 Nov) →
 | 27 Nov 2026 | Cases: only new flags become cases; starting case types and owners as in §8; working days Mon–Fri |
 | 27 Nov 2026 | Receiving: "received" includes defective; short = sent − received; more than sent is refused for now; Amazon case ID kept on the box line for SHP-05 (built later) |
 | 27 Nov 2026 | PUR-07: Purchases grouped by shipment, with a plain-list switch; a shipment shows only the selected month's lines (others counted on its header) |
+| 27 Nov 2026 | PUR-07 AC7: each shipment on the Purchases tab ends with a total row: units, goods, courier paid, total (per currency) |
 | 27 Nov 2026 | DSH-04: dashboard drops "Balance owed to suppliers" and "Open flags by type"; shows last-12-months sales for CMR, ARC, YD and GOE; sales typed in by an admin for now (automation later); £ including VAT, all platforms; everyone can see them |

@@ -153,7 +153,27 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
                       </tr>
                     ))}
                   </tbody>
+                  {/* PUR-07 AC7: what this shipment cost, per currency */}
+                  <tfoot>
+                    {g.footer.map((f, i) => (
+                      <tr key={f.currency} className="font-medium">
+                        <td colSpan={3}>{i === 0 ? `Total (${g.products} product${g.products === 1 ? '' : 's'})` : ''}</td>
+                        <td className="num">{i === 0 ? g.units.toLocaleString('en-GB') : ''}</td>
+                        <td className="num" title="Goods: price × units">{money(f.goods, f.currency as 'INR')}{i === 0 && <div className="text-xs font-normal text-slate-500">goods</div>}</td>
+                        <td className="num" title="Courier paid: courier × units">{money(f.courier, f.currency as 'INR')}{i === 0 && <div className="text-xs font-normal text-slate-500">courier paid</div>}</td>
+                        <td className="num">{money(f.total, f.currency as 'INR')}</td>
+                        <td colSpan={2}></td>
+                      </tr>
+                    ))}
+                  </tfoot>
                 </table>
+                {/* phone: the same totals */}
+                <div className="mt-2 rounded-lg bg-slate-50 p-3 text-sm md:hidden dark:bg-slate-800/50">
+                  <div className="font-medium">Total: {g.units.toLocaleString('en-GB')} units</div>
+                  {g.footer.map((f) => (
+                    <div key={f.currency} className="tabular-nums">Goods {money(f.goods, f.currency as 'INR')} · Courier {money(f.courier, f.currency as 'INR')} · <span className="font-medium">Total {money(f.total, f.currency as 'INR')}</span></div>
+                  ))}
+                </div>
               </div>
             </details>
           ))}
