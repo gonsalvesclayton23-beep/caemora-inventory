@@ -27,6 +27,8 @@ export interface Group<L extends GroupLine = GroupLine> {
   totals: Record<string, number>;   // per currency, never added together
   received: string;
   otherMonths: string | null;
+  /** PUR-07 AC7: the total row at the bottom, one per currency (₹ and £ never added together) */
+  footer: { currency: string; goods: number; courier: number; total: number }[];
 }
 
 const monthName = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -63,11 +65,19 @@ export function groupByShipment<L extends GroupLine>(lines: L[], items: GroupIte
     const units = rows.reduce((t, r) => t + r.units, 0);
     const got = rows.reduce((t, r) => t + r.received, 0);
     const other = shipment ? otherMonths.get(shipment.id) : undefined;
+    const foot = new Map<string, { currency: string; goods: number; courier: number; total: number }>();
+    for (const r of rows) {
+      const f = foot.get(r.line.currency) ?? foot.set(r.line.currency, { currency: r.line.currency, goods: 0, courier: 0, total: 0 }).get(r.line.currency)!;
+      f.goods = round2(f.goods + Number(r.line.unit_price ?? 0) * r.units);
+      f.courier = round2(f.courier + Number(r.line.courier_per_unit ?? 0) * r.units);
+      f.total = round2(f.total + r.value);
+    }
     return {
       shipment, title, rows, products: new Set(rows.map((r) => r.line.id)).size, units, totals,
       // nothing is "received" while a box is still on its way
       received: shipment && !['in_transit', 'cancelled'].includes(shipment.status)
         ? `Received: ${got.toLocaleString('en-GB')} of ${units.toLocaleString('en-GB')}${units > got ? `, ${units - got} short` : ''}` : '',
+      footer: [...foot.values()].sort((a, b) => (a.currency === 'INR' ? -1 : b.currency === 'INR' ? 1 : 0)),
       otherMonths: other?.length ? other.map((o) => `+${o.lines} line${o.lines === 1 ? '' : 's'} in ${monthName(o.month)}`).join(', ') : null,
     };
   };

@@ -79,3 +79,19 @@ test('PUR-07 AC6: the export is unchanged: one row per line, with the shipment I
   assert.match(route, /'amazon_shipment_id', 'tracking_no', 'shipment_status'/);
   assert.match(route, /\(data \?\? \[\]\)\.map\(\(r: any\) => cols\.map/);
 });
+
+test('PUR-07 AC7: each shipment ends with a total row: units, goods, courier paid and total, per currency', () => {
+  const g = groupByShipment([
+    line(20, { qty: 26, unit_price: 90, courier_per_unit: 70, line_total: 4160, shipment_id: 9 }),
+    line(21, { qty: 50, unit_price: 180, courier_per_unit: 90, line_total: 13500, qty_note: 'split', shipment_id: null }),
+    line(22, { qty: 6, unit_price: 1.65, courier_per_unit: 1.24, currency: 'GBP', line_total: 17.34, shipment_id: 9 }),
+  ], [{ shipment_id: 9, purchase_line_id: 20, qty: 26, short_qty: 0 }, { shipment_id: 9, purchase_line_id: 21, qty: 30, short_qty: 0 },
+      { shipment_id: 9, purchase_line_id: 22, qty: 6, short_qty: 0 }], [ship(9)]);
+  const box = g.find((x) => x.shipment?.id === 9)!;
+  assert.equal(box.units, 62);
+  // ₹: goods 26×90 + 30×180 = 7,740; courier 26×70 + 30×90 = 4,520; total 12,260. £ apart: goods 9.90, courier 7.44, total 17.34
+  assert.deepEqual(box.footer, [
+    { currency: 'INR', goods: 7740, courier: 4520, total: 12260 },
+    { currency: 'GBP', goods: 9.9, courier: 7.44, total: 17.34 },
+  ]);
+});
