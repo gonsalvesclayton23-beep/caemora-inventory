@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { canViewMoney, getProfile } from '@/lib/auth';
+import { canViewMoney, getProfile, isAdmin } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { byCompanyOrder, referenceData } from '@/lib/data';
-import { dateLabel, money, monthLabel, RULE_LABELS } from '@/lib/format';
+import { dateLabel, money, monthLabel } from '@/lib/format';
 import { monthStart, money2 } from '@/lib/tz';
 import { Clocks } from '@/components/Clocks';
 import { UnitsChart } from '@/components/UnitsChart';
@@ -10,6 +10,8 @@ import { FxCard } from '@/components/FxCard';
 import { latestRate, last30Days } from '@/lib/fx';
 import { UK_TZ } from '@/lib/tz';
 import { caseState, myCasesLabel, TONE } from '@/lib/cases';
+import { last12Months, SALES_COMPANIES, salesTiles } from '@/lib/sales';
+import { SalesBars } from '@/components/SalesBars';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,8 +48,6 @@ export default async function Dashboard() {
   // FLG-03 AC2: my open cases, soonest due first
   const { data: myCases } = await supabase.from('v_my_cases').select('id, title, rule_label, link, due_on, status').order('due_on').order('id').limit(50);
 
-  const byRule = new Map<string, number>();
-  for (const f of flags ?? []) byRule.set(f.rule, (byRule.get(f.rule) ?? 0) + 1);
   const critical = (flags ?? []).filter((f) => f.severity === 'critical').length;
 
   const { data: monthLines } = await supabase.from('v_purchase_lines')
@@ -69,19 +69,11 @@ export default async function Dashboard() {
     for (const r of data ?? []) if (!companyOwed.has(r.company_code)) companyOwed.set(r.company_code, Number(r.closing_balance));
   }
 
-  // overall balance per supplier at the latest month each one has activity
-  let owed: { vendor_name: string; currency: string; closing_balance: number; period_month: string }[] = [];
-  if (canViewMoney(me)) {
-    const { data } = await supabase.from('v_vendor_balance')
-      .select('vendor_name, currency, closing_balance, period_month').order('period_month', { ascending: false }).limit(2000);
-    const seen = new Set<string>();
-    for (const r of data ?? []) {
-      const k = `${r.vendor_name}|${r.currency}`;
-      if (seen.has(k)) continue;
-      seen.add(k);
-      if (Math.abs(Number(r.closing_balance)) >= 1) owed.push(r);
-    }
-  }
+  // DSH-04: each company's sales, last 12 months (typed in by an admin for now)
+  const months12 = last12Months(today);
+  const { data: salesRows } = await supabase.from('company_sales').select('company_code, month, amount_gbp')
+    .in('company_code', [...SALES_COMPANIES]).gte('month', months12[0]).lte('month', months12[11]);
+  const salesTilesData = salesTiles((salesRows ?? []) as any[], companies, today);
 
   return (
     <div className="space-y-6">
@@ -184,31 +176,24 @@ export default async function Dashboard() {
         </table>
       </section>
 
-      {canViewMoney(me) && (
-        <section className="card overflow-x-auto">
-          <h2 className="mb-2 font-medium">Balance owed to suppliers</h2>
-          <table className="table">
-            <thead><tr><th>Supplier</th><th>As of</th><th className="num">Owed</th></tr></thead>
-            <tbody>
-              {owed.sort((a, b) => Number(b.closing_balance) - Number(a.closing_balance)).map((o) => (
-                <tr key={`${o.vendor_name}${o.currency}`}>
-                  <td>{o.vendor_name}</td><td>{monthLabel(o.period_month)}</td>
-                  <td className={`num ${Number(o.closing_balance) < 0 ? 'text-emerald-600' : ''}`}>{money(o.closing_balance, o.currency as 'INR' | 'GBP')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="mt-2 text-xs text-slate-500">Negative = paid in advance / in credit.</p>
-        </section>
-      )}
-
-      <section className="card">
-        <h2 className="mb-2 font-medium">Open flags by type</h2>
-        <ul className="divide-y divide-slate-100 text-sm dark:divide-slate-800">
-          {[...byRule.entries()].sort((a, b) => b[1] - a[1]).map(([rule, n]) => (
-            <li key={rule}><Link href={`/flags?rule=${rule}`} className="flex justify-between py-2"><span>{RULE_LABELS[rule] ?? rule}</span><span className="tabular-nums">{n}</span></Link></li>
+      <section className="card space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-medium">Sales, last 12 months</h2>
+          <span className="text-xs text-slate-500">
+            £, including VAT, all platforms · {monthLabel(months12[0])} to {monthLabel(months12[11])}
+            {isAdmin(me) && <> · <Link href="/sales" className="text-indigo-600 hover:underline dark:text-indigo-400">Enter sales</Link></>}
+          </span>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {salesTilesData.map((t) => (
+            <div key={t.code} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+              <div className="text-sm text-slate-500">{t.name}</div>
+              <div className="text-2xl font-semibold tabular-nums">{money(t.total, 'GBP', 0)}</div>
+              <div className="text-xs text-slate-500">{t.missing === 12 ? 'No months entered yet' : t.missing ? `${t.missing} month${t.missing === 1 ? '' : 's'} not entered` : 'All 12 months entered'}</div>
+              <SalesBars name={t.name} months={t.months} />
+            </div>
           ))}
-        </ul>
+        </div>
       </section>
     </div>
   );
