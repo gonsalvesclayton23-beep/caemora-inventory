@@ -3,6 +3,7 @@ import { getProfile, isAdmin } from '@/lib/auth';
 import { referenceData } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { AcknowledgeForm, FxRow, SettingsForm, UserRow, VatRow } from './forms';
+import { CaseRulesForm } from '../cases/forms';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Admin' };
@@ -14,9 +15,16 @@ export default async function AdminPage() {
   const { periods, companies } = await referenceData();
   const [{ data: users }, { data: settings }, { data: fx }] = await Promise.all([
     supabase.from('profiles').select('id, full_name, email, role, active').order('active', { ascending: true }).order('full_name'),
-    supabase.from('settings').select('key, value, description').not('key', 'like', 'margin_%').order('key'),
+    supabase.from('settings').select('key, value, description').not('key', 'like', 'margin_%').not('key', 'like', 'case_%').order('key'),
     supabase.from('v_fx').select('month, inr_per_gbp, source').order('month', { ascending: false }),
   ]);
+  // FLG-03: which flag types create cases, who gets them, due time
+  const [{ data: caseRules }, { data: dueRow }] = await Promise.all([
+    supabase.from('case_rules').select('rule, label, creates_case, assign_to, assignee, staff_ok').order('creates_case', { ascending: false }).order('label'),
+    supabase.from('settings').select('value').eq('key', 'case_due_working_days').maybeSingle(),
+  ]);
+  const casePeople = (users ?? []).filter((u: any) => u.active && (u.role === 'admin' || u.role === 'data_entry'))
+    .map((u: any) => ({ id: u.id, name: u.full_name || u.email, role: u.role }));
   const { data: vatHistory } = await supabase.from('v_company_vat_history')
     .select('id, changed_at, company_name, code, old_vat, new_vat, old_scheme, new_scheme, changed_by_name').order('changed_at', { ascending: false }).limit(20);
 
@@ -57,6 +65,12 @@ export default async function AdminPage() {
         <h2 className="font-medium">Old flags</h2>
         <p className="text-sm text-slate-500">Mark flags from before a month as seen, e.g. everything imported from the spreadsheet. They stay in the record.</p>
         <AcknowledgeForm periods={periods} />
+      </section>
+
+      <section className="card space-y-3">
+        <h2 className="font-medium">Cases</h2>
+        <p className="text-sm text-slate-500">Which flags become a case, and who it goes to. Payment and money cases only ever go to an admin. Changes apply to new cases; existing cases keep their owner (reassign them on the case).</p>
+        <CaseRulesForm rules={(caseRules ?? []) as any} people={casePeople} dueDays={Number(dueRow?.value ?? 3)} />
       </section>
 
       <section className="card space-y-3">

@@ -30,4 +30,6 @@ export const RULE_LABELS: Record<string, string> = {
   unconfirmed_payment: 'Unconfirmed payment',
   payment_missing_reference: 'Payment without reference',
   settled_month_edit: 'Edit to settled month',
+  check_with_supplier: 'Check with supplier',
+  raise_amazon_case: 'Raise Amazon case',
 };

@@ -14,7 +14,7 @@ export default async function FlagsPage({ searchParams }: { searchParams: Promis
   const me = await getProfile();
   const supabase = await createClient();
 
-  let q = supabase.from('flags').select('id, rule, severity, entity_type, entity_id, period_month, company_code, message, status, created_at')
+  let q = supabase.from('flags').select('id, rule, severity, entity_type, entity_id, period_month, company_code, message, status, created_at, details')
     .eq('status', sp.status ?? 'open').order('period_month', { ascending: false }).order('id', { ascending: false }).limit(300);
   if (sp.rule) q = q.eq('rule', sp.rule);
   if (sp.severity) q = q.eq('severity', sp.severity);
@@ -50,7 +50,9 @@ export default async function FlagsPage({ searchParams }: { searchParams: Promis
               <p className="mt-1 text-sm">
                 {f.entity_type === 'purchase_lines' || f.entity_type === 'shipments'
                   ? <Link href={`/${f.entity_type === 'purchase_lines' ? 'purchases' : 'shipments'}/${f.entity_id}`} className="hover:underline">{f.message}</Link>
-                  : f.message}
+                  : f.entity_type === 'shipment_items' && f.details?.shipment_id
+                    ? <Link href={`/shipments/${f.details.shipment_id}`} className="hover:underline">{f.message}</Link>
+                    : f.message}
               </p>
             </div>
             {isAdmin(me) && f.status !== 'resolved' && (

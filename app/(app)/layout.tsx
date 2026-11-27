@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getProfile, canViewMoney, isAdmin } from '@/lib/auth';
 import { signOut } from '@/app/login/actions';
 import { APP_NAME, NAV } from '@/lib/nav';
+import { createClient } from '@/lib/supabase/server';
 
 const ROLE_LABEL = { admin: 'Admin', data_entry: 'Data entry', viewer: 'Viewer' } as const;
 
@@ -22,6 +23,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const nav = NAV.filter((n) => n.who === 'all' || (n.who === 'money' ? canViewMoney(me) : isAdmin(me)));
+  // FLG-03 AC2: a badge with the number of my open cases
+  const supabase = await createClient();
+  const { count: myCases } = await supabase.from('v_my_cases').select('id', { count: 'exact', head: true });
+  const badge = (href: string) => href === '/cases' && myCases
+    ? <span className="ml-2 rounded-full bg-red-600 px-1.5 py-0.5 text-xs font-medium text-white" aria-label={`${myCases} open cases`}>{myCases}</span> : null;
 
   return (
     <div className="min-h-dvh md:flex">
@@ -29,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="mb-6 font-semibold leading-snug">{APP_NAME}</div>
         <nav className="space-y-1">
           {nav.map((n) => (
-            <Link key={n.href} href={n.href} className="block rounded-lg px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">{n.label}</Link>
+            <Link key={n.href} href={n.href} className="block rounded-lg px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">{n.label}{badge(n.href)}</Link>
           ))}
         </nav>
         <div className="mt-8 border-t border-slate-200 pt-4 text-xs text-slate-500 dark:border-slate-800">
@@ -45,7 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <details className="relative">
           <summary className="cursor-pointer list-none rounded-lg px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800">{me.full_name.split(' ')[0]} ▾</summary>
           <div className="absolute right-0 z-20 mt-1 w-48 rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-slate-900">
-            {nav.slice(5).map((n) => <Link key={n.href} href={n.href} className="block rounded px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800">{n.label}</Link>)}
+            {nav.slice(5).map((n) => <Link key={n.href} href={n.href} className="block rounded px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800">{n.label}{badge(n.href)}</Link>)}
             <Link href="/account" className="block rounded px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800">My account</Link>
             <form action={signOut}><button className="w-full rounded px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800">Sign out</button></form>
           </div>
