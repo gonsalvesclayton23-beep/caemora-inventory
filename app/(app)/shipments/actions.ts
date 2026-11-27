@@ -3,26 +3,32 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { friendlyError, type Result } from '@/lib/data';
+import { shortFromReceived } from '@/lib/cases';
 
 const STATUSES = ['in_transit', 'received', 'received_partial', 'lost', 'cancelled'];
 
-/** Saves the box's receipt details and, per product in it, the units, defective and short (PUR-06: per box). */
+/** Saves the box's receipt details and, per product in it, the units sent, received and defective (PUR-06 per box; SHP-08). */
 export async function saveShipment(_: unknown, form: FormData): Promise<Result> {
   const supabase = await createClient();
   const id = Number(form.get('id'));
   const s = (k: string) => { const v = String(form.get(k) ?? '').trim(); return v === '' ? null : v; };
   const num = (k: string) => Number(form.get(k) || 0);
 
-  const items = form.getAll('item_id').map(Number).map((itemId) => ({
-    id: itemId,
-    lineId: Number(form.get(`line_${itemId}`)),
-    qty: form.has(`qty_${itemId}`) ? num(`qty_${itemId}`) : null,
-    defective_qty: num(`defective_${itemId}`),
-    short_qty: num(`short_${itemId}`),
-    remarks: s(`remarks_${itemId}`),
-    remove: form.get(`remove_${itemId}`) === 'on',
-  }));
-  if (items.some((i) => i.defective_qty < 0 || i.short_qty < 0 || (i.qty != null && i.qty < 0))) return { error: 'Quantities cannot be negative.' };
+  const items = [];
+  for (const itemId of form.getAll('item_id').map(Number)) {
+    const qty = form.has(`qty_${itemId}`) ? num(`qty_${itemId}`) : null;
+    const sent = qty ?? num(`sent_${itemId}`);
+    const remove = form.get(`remove_${itemId}`) === 'on';
+    // SHP-08: "received" is what arrived (defective included); short = sent − received
+    const raw = String(form.get(`received_${itemId}`) ?? '').trim();
+    const got = shortFromReceived(sent, raw === '' ? sent : Number(raw));
+    if ('error' in got && !remove && qty !== 0) return { error: `${String(form.get(`name_${itemId}`) ?? 'A product')}: ${got.error}` };
+    items.push({
+      id: itemId, lineId: Number(form.get(`line_${itemId}`)), qty, remove,
+      defective_qty: num(`defective_${itemId}`), short_qty: 'short' in got ? got.short : 0, remarks: s(`remarks_${itemId}`),
+    });
+  }
+  if (items.some((i) => i.defective_qty < 0 || (i.qty != null && i.qty < 0))) return { error: 'Quantities cannot be negative.' };
 
   // contents first (allowed while In transit), then the box's status
   for (const i of items) {
@@ -46,9 +52,13 @@ export async function saveShipment(_: unknown, form: FormData): Promise<Result> 
   if (status === 'received' && kept.some((i) => i.defective_qty + i.short_qty > 0)) status = 'received_partial';
   const receivedOn = s('received_on') ?? (status.startsWith('received') ? new Date().toISOString().slice(0, 10) : null);
 
-  const { error } = await supabase.from('shipments').update({
+  const patch: Record<string, unknown> = {
     status, received_on: receivedOn, received_by: s('received_by'), tracking_no: s('tracking_no'), courier: s('courier'), notes: s('notes'),
-  }).eq('id', id);
+  };
+  // SHP-08: where the box went (only an admin sees this field; the database also refuses anyone else)
+  const destination = s('destination');
+  if (destination === 'amazon' || destination === 'home') patch.destination = destination;
+  const { error } = await supabase.from('shipments').update(patch).eq('id', id);
   if (error) return { error: friendlyError(error) };
 
   revalidatePath('/shipments');

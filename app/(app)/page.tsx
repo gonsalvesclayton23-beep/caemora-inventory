@@ -2,13 +2,14 @@ import Link from 'next/link';
 import { canViewMoney, getProfile } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { byCompanyOrder, referenceData } from '@/lib/data';
-import { money, monthLabel, RULE_LABELS } from '@/lib/format';
+import { dateLabel, money, monthLabel, RULE_LABELS } from '@/lib/format';
 import { monthStart, money2 } from '@/lib/tz';
 import { Clocks } from '@/components/Clocks';
 import { UnitsChart } from '@/components/UnitsChart';
 import { FxCard } from '@/components/FxCard';
 import { latestRate, last30Days } from '@/lib/fx';
 import { UK_TZ } from '@/lib/tz';
+import { caseState, myCasesLabel, TONE } from '@/lib/cases';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,9 @@ export default async function Dashboard() {
   const daily = (dailyRows ?? []).map((r) => ({ date: r.rate_date as string, inrPerGbp: Number(r.inr_per_gbp), fetched: r.fetched_at as string }));
   const latestFx = latestRate(daily, today);
   const fetched = daily.find((d) => d.date === latestFx?.date)?.fetched;
+
+  // FLG-03 AC2: my open cases, soonest due first
+  const { data: myCases } = await supabase.from('v_my_cases').select('id, title, rule_label, link, due_on, status').order('due_on').order('id').limit(50);
 
   const byRule = new Map<string, number>();
   for (const f of flags ?? []) byRule.set(f.rule, (byRule.get(f.rule) ?? 0) + 1);
@@ -88,6 +92,32 @@ export default async function Dashboard() {
         </div>
         <Clocks />
       </header>
+
+      {(myCases?.length ?? 0) > 0 && (
+        <section className="card space-y-2">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-medium">{myCasesLabel(myCases!.length)}</h2>
+            <Link href="/cases" className="text-sm text-indigo-600 hover:underline dark:text-indigo-400">All cases →</Link>
+          </div>
+          <ul className="divide-y divide-slate-100 text-sm dark:divide-slate-800">
+            {myCases!.slice(0, 10).map((c: any) => {
+              const st = caseState(c, today);
+              return (
+                <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <div className="min-w-0">
+                    <Link href={`/cases/${c.id}`} className="font-medium hover:underline">{c.title}</Link>
+                    <div className="text-xs text-slate-500">{c.rule_label} · <Link href={c.link} className="underline">open the record</Link></div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className={st.label === 'Overdue' ? 'font-medium text-red-600 dark:text-red-400' : 'text-slate-500'}>Due {dateLabel(c.due_on)}</span>
+                    <span className={`rounded px-2 py-0.5 ${TONE[st.tone]}`}>{st.label}</span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <FxCard latest={latestFx ? { date: latestFx.date, inrPerGbp: latestFx.inrPerGbp } : null} label={latestFx?.label ?? ''}
         updated={fetched ? new Date(fetched).toLocaleString('en-GB', { timeZone: UK_TZ, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' UK time' : null}

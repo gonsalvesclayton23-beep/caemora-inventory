@@ -55,12 +55,13 @@ Selling one product through several companies' accounts is normal: a product has
 | Dashboard | all | Open flags, shipments in transit, this month's purchases, balance owed per company and supplier |
 | Purchases → New | admin, data entry | One invoice: company, vendor, ₹/£, invoice no., shipment/box, then products. Fills the agreed courier and last price, and warns before saving |
 | Purchases | all | Filter by month, company, text; edit a line; CSV export |
-| Shipments | all | In transit / received; mark received and enter defective/short per line (allowed after a month is settled) |
+| Shipments | all | In transit / received; destination (Amazon warehouse or Home (UK)); enter or correct received and defective per box line at any time, settled months included (who and when kept, with history); shortages raise "Raise Amazon case" or "Check with supplier" cases, closed with an outcome |
 | Products | all | Product master; admins edit the agreed courier rate and the month it applies from |
 | Flags | all (data entry: purchase & shipment flags) | Inbox; admins acknowledge or resolve |
 | Reconciliation | admin, viewer | Per supplier and month: each company's opening, purchases, credit notes, payments, closing; payments with the paying account; add payments and credit notes; settle or reopen the month |
 | Landed cost | admin, viewer | ₹ and £ per unit by product, company and month; per unit received; CSV export |
 | Product margins | all (admin edits) | One line per product: costs and exchange rate entered once, then price, company and fees per platform (Amazon, eBay, Shopify, OnBuy, Etsy), compared side by side with profit, ROI, "Best return" and "Below target"; lowest price for the ROI target; possible matches to merge (admin confirms each); fees and ROI target per platform; price and settings history; CSV export. Separate from purchases, shipments and payments |
+| Cases | all (India team: their own) | Flags that need action become cases with an owner, status (Open / In progress / Resolved) and due date (3 working days); "My cases" on the dashboard and a badge on the menu; close by fixing the problem or Resolve with a note; admin reassigns, filters by person, status, type and overdue, and sets which flags create cases and who gets them (Admin). Payment cases only ever go to an admin |
 | Audit log | admin | Who changed what and when (changed fields old → new), sign-ins, sign-outs and failed sign-ins; filter by person, area, action and dates; CSV export. Viewing is not recorded; entries cannot be edited or deleted |
 | Admin | admin | Users and roles, flag thresholds, ₹/£ overrides, mark old flags as seen |
 
