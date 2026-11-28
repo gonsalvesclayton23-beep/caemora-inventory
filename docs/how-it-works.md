@@ -5,7 +5,7 @@ CIMS (Caemora Inventory Management System) replaced the MIT-2026.xlsx tracker. T
 - What the app must do, with acceptance criteria: [requirements.md](requirements.md)
 - Setting up and developing: [README](../README.md)
 
-Last updated: 28 Nov 2026 (DSH-05, company ticker; My cases off the dashboard).
+Last updated: 28 Nov 2026 (DSH-06, India and China charts).
 
 ---
 
@@ -48,7 +48,7 @@ New logins start **inactive**: an admin sets the role and ticks Active. All of t
 
 | Screen | What it is for |
 |---|---|
-| **Dashboard** | A moving ticker of the four companies (Caemora and YouDent logos, Goenche Ltd and ARC UK G Ltd names; pauses on hover, still if the device has motion turned off), today's £→₹ rate (with 30-day history and this month's Wise rate), UK and India clocks, **sales for the last 12 months** for Caemora Ltd, ARC UK G Ltd, Youdent Ltd and Goenche Ltd (see §6a), this month's spend per company (₹ and £ apart), units per month chart, open and critical flag counts, shipments in transit. (The "Balance owed to suppliers" and "Open flags by type" sections were removed on 27 Nov 2026: balances are on Reconciliation, flags on Flags.) |
+| **Dashboard** | A moving ticker of the four companies (Caemora and YouDent logos, Goenche Ltd and ARC UK G Ltd names; pauses on hover, still if the device has motion turned off), today's £→₹ rate (with 30-day history and this month's Wise rate), UK and India clocks, **sales for the last 12 months** for Caemora Ltd, ARC UK G Ltd, Youdent Ltd and Goenche Ltd (see §6a), this month's spend per company (₹ and £ apart), **India (₹) and China (£) charts** (DSH-06: units ordered per month, then average price and courier per unit, with a monthly table), open and critical flag counts, shipments in transit. (The "Balance owed to suppliers" and "Open flags by type" sections were removed on 27 Nov 2026: balances are on Reconciliation, flags on Flags.) |
 | **Purchases** | All purchase lines for a month, **grouped by shipment** (PUR-07): each shipment's header shows its ID, company, destination, status, products, units, ₹ and £ totals and what was received; its products are listed underneath. Lines not yet in a box are under "Not in a shipment yet". A switch shows the old plain list. Filters: month, company, search. CSV export (one row per line). "+ New purchase" enters one invoice |
 | **Shipments** | Boxes in transit and received. On a box: destination, status, tracking, and per product **sent / received / defective / short**, who counted it and when, the count history, and the shortage follow-up |
 | **Invoices** | Upload and find invoice files |
@@ -151,7 +151,7 @@ Every add, change and delete made in the app is recorded with who and when, plus
 2. Merge the pull request on GitHub. Vercel redeploys the site.
 3. `supabase/setup.sql` is the full database for a brand-new project only, never for the live one.
 
-Updates so far, in order: dashboard and invoices (22 Nov) → boxes (25 Nov) → daily FX (25 Nov) → companies and VAT (26 Nov) → margins (26 Nov) → margin platforms (26 Nov) → audit log (27 Nov) → cases and receiving (27 Nov) → company sales (27 Nov).
+Updates so far, in order: dashboard and invoices (22 Nov) → boxes (25 Nov) → daily FX (25 Nov) → companies and VAT (26 Nov) → margins (26 Nov) → margin platforms (26 Nov) → audit log (27 Nov) → cases and receiving (27 Nov) → company sales (27 Nov) → dashboard India/China charts (28 Nov).
 
 ## 14. Decisions log
 
@@ -170,5 +170,6 @@ Updates so far, in order: dashboard and invoices (22 Nov) → boxes (25 Nov) →
 | 27 Nov 2026 | Receiving: "received" includes defective; short = sent − received; more than sent is refused for now; Amazon case ID kept on the box line for SHP-05 (built later) |
 | 27 Nov 2026 | PUR-07: Purchases grouped by shipment, with a plain-list switch; a shipment shows only the selected month's lines (others counted on its header) |
 | 27 Nov 2026 | PUR-07 AC7: each shipment on the Purchases tab ends with a total row: units, goods, courier paid, total (per currency) |
+| 28 Nov 2026 | DSH-06: the dashboard's single "Units ordered per month" chart (DSH-01) is replaced by two diagrams: India (Indian suppliers, ₹) and China (Chinese suppliers, £). Each shows units per month and, below with months lined up, average price per unit (goods ÷ units) and courier per unit (courier ÷ units). Other suppliers (e.g. UK packaging) are not in either |
 | 28 Nov 2026 | DSH-05: a moving company ticker at the top of the dashboard (Caemora and YouDent logos from Clayton's image; Goenche Ltd and ARC UK G Ltd as names). "My cases" removed from the dashboard (changes FLG-03 AC2): the Cases tab and its menu badge are enough |
 | 27 Nov 2026 | DSH-04: dashboard drops "Balance owed to suppliers" and "Open flags by type"; shows last-12-months sales for CMR, ARC, YD and GOE; sales typed in by an admin for now (automation later); £ including VAT, all platforms; everyone can see them |

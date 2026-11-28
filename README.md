@@ -52,7 +52,7 @@ Selling one product through several companies' accounts is normal: a product has
 
 | Screen | Who | What |
 |---|---|---|
-| Dashboard | all | Company ticker, today's £→₹ rate, sales for the last 12 months per company (typed in by an admin on Enter sales), this month's purchases, shipments in transit, flag counts |
+| Dashboard | all | Company ticker, today's £→₹ rate, India (₹) and China (£) charts of units and price/courier per unit, sales for the last 12 months per company (typed in by an admin on Enter sales), this month's purchases, shipments in transit, flag counts |
 | Purchases → New | admin, data entry | One invoice: company, vendor, ₹/£, invoice no., shipment/box, then products. Fills the agreed courier and last price, and warns before saving |
 | Purchases | all | Filter by month, company, text; edit a line; CSV export |
 | Shipments | all | In transit / received; destination (Amazon warehouse or Home (UK)); enter or correct received and defective per box line at any time, settled months included (who and when kept, with history); shortages raise "Raise Amazon case" or "Check with supplier" cases, closed with an outcome |

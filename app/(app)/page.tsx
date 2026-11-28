@@ -5,7 +5,8 @@ import { byCompanyOrder, referenceData } from '@/lib/data';
 import { money, monthLabel } from '@/lib/format';
 import { monthStart, money2 } from '@/lib/tz';
 import { Clocks } from '@/components/Clocks';
-import { UnitsChart } from '@/components/UnitsChart';
+import { OriginCharts } from '@/components/OriginCharts';
+import { originSeries, ORIGINS } from '@/lib/origin';
 import { FxCard } from '@/components/FxCard';
 import { latestRate, last30Days } from '@/lib/fx';
 import { UK_TZ } from '@/lib/tz';
@@ -67,6 +68,10 @@ export default async function Dashboard() {
     for (const r of data ?? []) if (!companyOwed.has(r.company_code)) companyOwed.set(r.company_code, Number(r.closing_balance));
   }
 
+  // DSH-06: units, goods and courier per month for India (₹) and China (£)
+  const { data: originRows } = await supabase.rpc('dashboard_by_origin', { p_months: 12, p_end: month });
+  const originData = Object.fromEntries(ORIGINS.map((o) => [o.code, originSeries((originRows ?? []) as any[], o.code, today)]));
+
   // DSH-04: each company's sales, last 12 months (typed in by an admin for now)
   const months12 = last12Months(today);
   const { data: salesRows } = await supabase.from('company_sales').select('company_code, month, amount_gbp')
@@ -106,26 +111,8 @@ export default async function Dashboard() {
         </p>
       )}
 
-      {/* DSH-01: units ordered per month */}
-      <section className="card">
-        <h2 className="font-medium">Units ordered per month</h2>
-        <p className="mb-2 text-xs text-slate-500">All companies and suppliers, last 12 months. Packaging and stationery not counted.</p>
-        <UnitsChart data={months.map((m) => ({ month: m.month, units: m.units }))} />
-        <details className="mt-3">
-          <summary className="cursor-pointer text-sm text-slate-600 dark:text-slate-300">Monthly table: units and spend by currency</summary>
-          <div className="overflow-x-auto">
-            <table className="table mt-2">
-              <thead><tr><th>Month</th><th className="num">Units</th><th className="num">Spent (INR)</th><th className="num">Spent (GBP)</th></tr></thead>
-              <tbody>
-                {[...months].reverse().map((m) => (
-                  <tr key={m.month}><td>{monthLabel(m.month)}</td><td className="num">{m.units.toLocaleString('en-GB')}</td>
-                    <td className="num">{money2(m.inr, 'INR')}</td><td className="num">{money2(m.gbp, 'GBP')}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </details>
-      </section>
+      {/* DSH-06 (replaces the combined DSH-01 chart): India in ₹ and China in £, each with units and cost per unit */}
+      <OriginCharts series={originData} />
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Link href="/flags" className="card"><div className="text-sm text-slate-500">Open flags</div><div className="text-2xl font-semibold tabular-nums">{flags?.length ?? 0}</div></Link>

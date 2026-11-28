@@ -13,5 +13,5 @@ body { @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 a
 .num { @apply text-right tabular-nums; }
 
 /* Chart tokens (dataviz reference palette, slot 1). Dark mode has its own validated step. */
-:root { --series-1: #2a78d6; --chart-grid: #e7e6e2; --chart-text: #52514e; }
-@media (prefers-color-scheme: dark) { :root { --series-1: #3987e5; --chart-grid: #34332f; --chart-text: #c3c2b7; } }
+:root { --series-1: #2a78d6; --series-2: #f47230; --chart-grid: #e7e6e2; --chart-text: #52514e; }
+@media (prefers-color-scheme: dark) { :root { --series-1: #3987e5; --series-2: #e76624; --chart-grid: #34332f; --chart-text: #c3c2b7; } }
