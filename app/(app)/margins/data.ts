@@ -30,7 +30,7 @@ export function productValues(p: any, lines: any[], s: MarginSettings, defaultCo
       saved: true, company_code: l.company_code, selling_price: str(l.selling_price), tax_override_pct: str(l.tax_override_pct), hidden: !!l.hidden,
       listing_status: l.listing_status === 'not_listed' ? 'not_listed' : 'listed',
       referral_pct: str(l.referral_pct), fba_fee: str(l.fba_fee), promo_per_unit: str(l.promo_per_unit),
-      local_shipping: str(l.local_shipping), misc_expense: str(l.misc_expense), ad_pct: str(l.ad_pct),
+      local_shipping: str(l.local_shipping), misc_expense: str(l.misc_expense), ad_pct: str(l.ad_pct), category_fee_pct: str(l.category_fee_pct),
     } : blankPlatform(code, s, lines[0]?.company_code ?? defaultCompany);
   }
   return {

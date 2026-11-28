@@ -64,7 +64,7 @@ update settings set value = '2' where key = 'margin_fba_surcharge_pct';
 
 -- Access: everyone reads; only an admin changes anything (MRG-02 AC3 and "Who can do what")
 select test_as('00000000-0000-0000-0000-00000000000b');
-select expect((select count(*) from v_margin_lines) = 2 and (select count(*) from settings where key like 'margin_%') = 29, 'Margins: data entry can read lines and settings');
+select expect((select count(*) from v_margin_lines) = 2 and (select count(*) from settings where key like 'margin_%') = 31, 'Margins: data entry can read lines and settings');
 update settings set value = '3' where key = 'margin_fba_surcharge_pct';
 select expect((select value #>> '{}' from settings where key = 'margin_fba_surcharge_pct') = '2', 'MRG-02 AC3: data entry cannot change settings');
 update margin_lines set selling_price = 1 where id = (select id from v_margin_lines where asin = 'B0FMHY3KW5');

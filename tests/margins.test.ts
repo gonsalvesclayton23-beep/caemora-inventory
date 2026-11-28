@@ -138,7 +138,7 @@ test('MRG-07 AC4: copy to another company keeps the costs and recalculates tax a
 });
 test('MRG-07 AC5: export has every input and every worked-out column', () => {
   for (const c of ['name', 'company', 'channel', 'product_cost', 'product_cost_currency', 'courier_cost', 'courier_currency', 'fx_rate',
-    'fx_rate_label', 'referral_pct', 'fba_fee', 'promo_per_unit', 'local_shipping', 'misc_expense', 'ad_pct', 'selling_price', 'tax_rate',
+    'fx_rate_label', 'referral_pct', 'fba_fee', 'ads_per_unit', 'local_shipping', 'misc_expense', 'ads_pct', 'selling_price', 'tax_rate',
     'landed_cost', 'referral_fee', 'referral_fee_vat', 'fba_fee_vat', 'fba_surcharge', 'digital_services_tax', 'ebay_fees', 'ad_fees',
     'cost_before_tax', 'tax', 'final_cost', 'profit', 'roi_pct', 'status', 'lowest_price_for_target', 'owner', 'notes', 'asin', 'fnsku', 'listing_status']) {
     assert.ok((EXPORT_COLUMNS as readonly string[]).includes(c), c);

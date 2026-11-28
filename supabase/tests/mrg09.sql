@@ -26,7 +26,7 @@ update margin_lines set company_code = 'YD' where id = (select id from v_margin_
 
 -- AC5: Shopify, OnBuy and Etsy settings, starting at 0 (shipping £2.76, misc £0.05); a platform can be hidden
 select expect((select count(*) from settings where key ~ '^margin_(shopify|onbuy|etsy)_') = 21, 'MRG-09 AC5: 7 settings for each new platform');
-select expect((select bool_and(case when key ~ '_shipping$' then value #>> '{}' = '2.76' when key ~ '_misc$' then value #>> '{}' = '0.05' else value #>> '{}' = '0' end)
+select expect((select bool_and(case when key ~ '_shipping$' then value #>> '{}' = '2.76' when key ~ '_misc$' then value #>> '{}' = '0.05' when key = 'margin_etsy_payment_fixed' then value #>> '{}' = '0.2' else value #>> '{}' = '0' end)
                  from settings where key ~ '^margin_(shopify|onbuy|etsy)_'), 'MRG-09 AC5: fees start at 0');
 select save_margin_product(jsonb_build_object('id', (select id from margin_products where asin = 'B0FMHY3KW5'),
   'name', 'Antifungal Soap - KetoSkin AF 75g', 'asin', 'B0FMHY3KW5', 'fnsku', 'X002DRQU19', 'product_cost', 90, 'courier_cost', 70, 'fx_rate', 115,

@@ -21,10 +21,10 @@ test('MRG-09 AC2: one row per platform: Amazon and eBay figures', () => {
   const c = compareProduct(soap, [amazon, ebay], S);
   const a = row(c, 'AMAZON'), e = row(c, 'EBAY');
   assert.deepEqual([a.label, a.companyName, gbp(a.price), gbp(a.fees), gbp(a.result!.tax), gbp(a.result!.finalCost), gbp(a.result!.profit), pct(a.result!.roi)],
-    ['Amazon', 'Caemora Ltd', '£8.99', '£5.38', '£0.67', '£7.44', '£1.55', '111.13%']);
+    ['Amazon FBA', 'Caemora Ltd', '£8.99', '£5.38', '£0.67', '£7.44', '£1.55', '111.13%']);
   assert.deepEqual([e.label, e.companyName, gbp(e.price), gbp(e.fees), gbp(e.shippingMisc), gbp(e.result!.tax), gbp(e.result!.finalCost), gbp(e.result!.profit), pct(e.result!.roi)],
     ['eBay', 'Youdent Ltd', '£7.69', '£2.65', '£2.81', '£0.00', '£6.85', '£0.84', '60.39%']);
-  assert.deepEqual(c.rows.map((r) => r.channel), ['AMAZON', 'EBAY', 'SHOPIFY', 'ONBUY', 'ETSY']);
+  assert.deepEqual(c.rows.map((r) => r.channel), ['AMAZON', 'AMAZON_FBM', 'EBAY', 'SHOPIFY', 'ONBUY', 'ETSY']);
 });
 
 test('MRG-09 AC3: highest ROI is "Best return"; under 25% is "Below target" in red', () => {

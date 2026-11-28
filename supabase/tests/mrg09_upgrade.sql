@@ -8,6 +8,6 @@ begin
          = 'AMAZON=9.4900/CMR EBAY=7.6900/YD AMAZON=5.0000/GOE', 'prices, platforms and companies kept';
   assert (select product_cost = 90 and fx_rate = 115 and fx_source = 'manual' and asin = 'B0FMHY3KW5' from margin_products where id = 1), 'costs and rate kept';
   assert (select count(*) from v_margin_price_history where line_id = 1 and old_price = 8.99 and new_price = 9.49) = 1, 'price history kept';
-  assert (select count(*) from settings where key like 'margin_%') = 29, 'settings added';
+  assert (select count(*) from settings where key like 'margin_%') = 31, 'settings added';
 end $$;
 select 'upgrade ok';

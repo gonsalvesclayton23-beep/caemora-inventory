@@ -3,13 +3,14 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { friendlyError, type Result } from '@/lib/data';
-import { PLATFORMS } from '@/lib/margin';
+import { PLATFORMS, validateCosts } from '@/lib/margin';
 
 const NUM_PRODUCT = ['product_cost', 'courier_cost', 'fx_rate'] as const;
-const NUM_PLATFORM = ['selling_price', 'tax_override_pct', 'referral_pct', 'fba_fee', 'promo_per_unit', 'local_shipping', 'misc_expense', 'ad_pct'] as const;
+const NUM_PLATFORM = ['selling_price', 'tax_override_pct', 'referral_pct', 'fba_fee', 'promo_per_unit', 'local_shipping', 'misc_expense', 'ad_pct', 'category_fee_pct'] as const;
 const LABEL: Record<string, string> = {
   product_cost: 'Product cost', courier_cost: 'Courier cost', fx_rate: 'Exchange rate', selling_price: 'Selling price', tax_override_pct: 'Tax rate',
-  referral_pct: 'Referral fee', fba_fee: 'FBA fee', promo_per_unit: 'Promo / ads', local_shipping: 'Shipping', misc_expense: 'Misc. expense', ad_pct: 'Ads',
+  referral_pct: 'Referral fee %', fba_fee: 'FBA fee', promo_per_unit: 'Ads (£ per unit)', local_shipping: 'Shipping / local courier', misc_expense: 'Miscellaneous', ad_pct: 'Ads %',
+  category_fee_pct: 'Category fee %',
 };
 const toNum = (v: unknown) => {
   const s = String(v ?? '').trim();
@@ -29,6 +30,9 @@ export async function saveMarginProduct(_: unknown, f: FormData): Promise<Result
     id: p.id ?? null, product_id: p.product_id ?? null, name, asin: text(p.asin), fnsku: text(p.fnsku), owner: text(p.owner), notes: text(p.notes),
     product_cost_currency: p.product_cost_currency === 'GBP' ? 'GBP' : 'INR', courier_currency: p.courier_currency === 'GBP' ? 'GBP' : 'INR',
   };
+  // MRG-11: both costs are required (0 is a valid courier cost)
+  const missing = validateCosts({ product_cost: String(p.product_cost ?? ''), courier_cost: String(p.courier_cost ?? '') });
+  if (missing.product_cost || missing.courier_cost) return { error: [missing.product_cost, missing.courier_cost].filter(Boolean).join('. ') + '.' };
   for (const k of NUM_PRODUCT) {
     const x = toNum(p[k]);
     if (Number.isNaN(x) || (x != null && x < 0)) return { error: `${LABEL[k]} must be a number of 0 or more.` };

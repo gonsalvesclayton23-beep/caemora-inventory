@@ -90,9 +90,19 @@ export default async function MarginsPage({ searchParams }: { searchParams: Prom
 
       <div className="card overflow-x-auto">
         <table className="table">
-          <thead><tr>
+          <thead>
+            {/* MRG-14: Amazon FBA and FBM sit together under one "Amazon" heading */}
+            <tr>
+              <th colSpan={2} className="!border-b-0"></th>
+              {[...new Set(PLATFORMS.map((p) => p.group))].map((g) => {
+                const n = PLATFORMS.filter((p) => p.group === g).length;
+                return <th key={g} colSpan={n} className={`!border-b-0 text-center ${n > 1 ? 'font-semibold text-slate-700 dark:text-slate-200' : ''}`}>{n > 1 ? g : ''}</th>;
+              })}
+              <th className="!border-b-0"></th>
+            </tr>
+            <tr>
             {head('name')}{head('landed', 'Landed', 'num')}
-            {PLATFORMS.map((p) => <Fragment key={p.code}>{head(`roi_${p.code}`, p.label, 'num')}</Fragment>)}
+            {PLATFORMS.map((p) => <Fragment key={p.code}>{head(`roi_${p.code}`, PLATFORMS.filter((x) => x.group === p.group).length > 1 ? p.label.replace(`${p.group} `, '') : p.label, 'num')}</Fragment>)}
             {head('best_roi', 'Best ROI', 'num')}
           </tr></thead>
           <tbody>

@@ -31,7 +31,7 @@ export async function loadProducts() {
         channel: l.channel as Channel, companyCode: l.company_code, companyName: l.company_name, companyVatPct: Number(l.company_vat_pct),
         ownTaxPct: l.tax_override_pct == null ? null : Number(l.tax_override_pct), sellingPrice: l.selling_price == null ? null : Number(l.selling_price),
         hidden: !!l.hidden, referralPct: num(l.referral_pct), fbaFee: num(l.fba_fee), promoPerUnit: num(l.promo_per_unit),
-        localShipping: num(l.local_shipping), miscExpense: num(l.misc_expense), adPct: num(l.ad_pct),
+        localShipping: num(l.local_shipping), miscExpense: num(l.misc_expense), adPct: num(l.ad_pct), categoryPct: num(l.category_fee_pct),
       }));
       return { ...p, rows, costs, entries } as ProductLine;
     }),
