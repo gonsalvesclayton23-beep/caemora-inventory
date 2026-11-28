@@ -85,89 +85,80 @@ export function ProductForm({ initial, companies, settings, canEdit, costNote }:
     </select>
   );
 
-  // MRG-22: the margin line as a calculator: platform tabs, a display, keys, quick price buttons and a receipt
+  // MRG-22/MRG-23: one compact calculator per platform, side by side: display, keys, quick price buttons and a receipt
   const visible = PLATFORMS.filter(({ code }) => !v.platforms[code].hidden);
-  const [tab, setTab] = useState<Channel>(visible[0]?.code ?? 'AMAZON');
-  const active = visible.find((x) => x.code === tab) ?? visible[0];
   const calcKey = (code: Channel, k: keyof PlatformValues, label: string, big = false) => (
-    <label key={`${code}${String(k)}`} className={`calc-key ${big ? 'price col-span-3' : ''}`}><span className="l">{label}</span>
+    <label key={`${code}${String(k)}`} className={`calc-key ${big ? 'price col-span-2' : ''}`}><span className="l">{label}</span>
       <input value={String(v.platforms[code][k] ?? '')} onChange={(e) => setPl(code, { [k]: e.target.value })} inputMode="decimal" disabled={!canEdit} />
     </label>
   );
-  const renderCalculator = () => {
-    if (!active) return <p className="card text-sm text-slate-500">Every platform is hidden. Show one below.</p>;
-    const code = active.code;
+  const renderCalc = ({ code, label }: { code: Channel; label: string }) => {
     const p = v.platforms[code];
     const r = cmp.rows.find((x) => x.channel === code)!;
     const e = entries.find((x) => x.channel === code)!;
     const d = displayState(r, cmp.landed);
     const receipt = r.state === 'priced' ? receiptLines(costs, e, settings) : [];
     return (
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)]">
-        <div className="calc space-y-4">
-          <div className="flex items-center justify-between text-[11px] tracking-[.18em] text-slate-500">
-            <span>CIMS · MARGIN CALCULATOR</span><span className="tabular-nums">{v.cae_code ?? 'NEW LINE'}</span>
-          </div>
-          <div role="tablist" aria-label="Platform" className="flex flex-wrap gap-1.5">
-            {visible.map((x) => (
-              <button key={x.code} type="button" role="tab" aria-selected={x.code === code} className="calc-tab" onClick={() => setTab(x.code)}>{x.label}</button>
-            ))}
-          </div>
-          <div className={`calc-lcd ${d.tone === 'red' ? 'is-red' : ''}`} aria-live="polite">
-            <div className="flex justify-between gap-2 text-xs opacity-80"><span>PROFIT PER UNIT</span><span>LANDED {d.landed} · FINAL {d.final}</span></div>
+      <div key={code} className="calc space-y-2.5" aria-label={`${label} calculator`}>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold tracking-wide">{label}</h3>
+          <select aria-label={`${label}: company (sets the tax)`} value={p.company_code} onChange={(ev) => setPl(code, { company_code: ev.target.value })} disabled={!canEdit}
+            className="calc-chip">
+            {companies.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+          </select>
+        </div>
+        <div className={`calc-lcd ${d.tone === 'red' ? 'is-red' : ''}`} aria-live="polite">
+          <div className="flex items-end justify-between gap-2">
+            <div className="text-[10px] leading-tight opacity-80">PROFIT / UNIT<br /><span className="text-sm opacity-100">{d.roi}</span></div>
             <div className="big tabular-nums">{d.profit}</div>
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="text-xl tabular-nums">{d.roi}</span>
-              <span className="rounded-full bg-black/30 px-2 py-0.5 font-sans text-xs">{d.status}</span>
-            </div>
           </div>
-          <div className="grid grid-cols-3 gap-2.5">
-            {calcKey(code, 'selling_price', 'Selling price (£)', true)}
-            {code === 'AMAZON' && <>{calcKey(code, 'referral_pct', 'Referral fee %')}{calcKey(code, 'fba_fee', 'FBA fee £')}{calcKey(code, 'promo_per_unit', 'Ads £/unit')}{calcKey(code, 'misc_expense', 'Miscellaneous £')}</>}
-            {code === 'AMAZON_FBM' && <>{calcKey(code, 'referral_pct', 'Referral fee %')}{calcKey(code, 'local_shipping', 'Local courier £')}{calcKey(code, 'promo_per_unit', 'Ads £/unit')}{calcKey(code, 'misc_expense', 'Miscellaneous £')}</>}
-            {code === 'EBAY' && calcKey(code, 'category_fee_pct', 'Category fee %')}
-            {code !== 'AMAZON' && code !== 'AMAZON_FBM' && <>{calcKey(code, 'ad_pct', 'Ads %')}{calcKey(code, 'local_shipping', code === 'EBAY' ? 'Local shipping £' : 'Shipping £')}{calcKey(code, 'misc_expense', 'Miscellaneous £')}</>}
-            <label className="calc-key" title={taxLabel(e)}><span className="l">{p.tax_override_pct === '' ? 'Tax % (company)' : 'Own tax %'}</span>
-              <input value={p.tax_override_pct} onChange={(ev) => setPl(code, { tax_override_pct: ev.target.value })} placeholder={String(Number(companies.find((c) => c.code === p.company_code)?.default_vat_pct ?? 0))} inputMode="decimal" disabled={!canEdit} />
-            </label>
-            <label className="calc-key"><span className="l">Company</span>
-              <select value={p.company_code} onChange={(ev) => setPl(code, { company_code: ev.target.value })} disabled={!canEdit}>
-                {companies.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-              </select>
-            </label>
-            <label className="calc-key"><span className="l">Listing</span>
-              <select value={p.listing_status} onChange={(ev) => setPl(code, { listing_status: ev.target.value as PlatformValues['listing_status'] })} disabled={!canEdit}>
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-1 text-[10px]">
+            <span className="opacity-80">FINAL {d.final}</span>
+            <span className="rounded-full bg-black/30 px-2 py-0.5 font-sans">{d.status}</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {calcKey(code, 'selling_price', 'Selling price (£)', true)}
+          {code === 'AMAZON' && <>{calcKey(code, 'referral_pct', 'Referral fee %')}{calcKey(code, 'fba_fee', 'FBA fee £')}{calcKey(code, 'promo_per_unit', 'Ads £/unit')}{calcKey(code, 'misc_expense', 'Misc £')}</>}
+          {code === 'AMAZON_FBM' && <>{calcKey(code, 'referral_pct', 'Referral fee %')}{calcKey(code, 'local_shipping', 'Local courier £')}{calcKey(code, 'promo_per_unit', 'Ads £/unit')}{calcKey(code, 'misc_expense', 'Misc £')}</>}
+          {code === 'EBAY' && calcKey(code, 'category_fee_pct', 'Category fee %')}
+          {code !== 'AMAZON' && code !== 'AMAZON_FBM' && <>{calcKey(code, 'ad_pct', 'Ads %')}{calcKey(code, 'local_shipping', code === 'EBAY' ? 'Local shipping £' : 'Shipping £')}{calcKey(code, 'misc_expense', 'Misc £')}</>}
+          <label className="calc-key" title={taxLabel(e)}><span className="l">{p.tax_override_pct === '' ? 'Tax % (company)' : 'Own tax %'}</span>
+            <input value={p.tax_override_pct} onChange={(ev) => setPl(code, { tax_override_pct: ev.target.value })} placeholder={String(Number(companies.find((c) => c.code === p.company_code)?.default_vat_pct ?? 0))} inputMode="decimal" disabled={!canEdit} />
+          </label>
+        </div>
+        {canEdit && (
+          <div className="calc-ops grid grid-cols-4 gap-1.5">
+            <button type="button" className="calc-op" onClick={() => setPl(code, { selling_price: nudgePrice(p.selling_price, -0.1) })}>−10p</button>
+            <button type="button" className="calc-op" onClick={() => setPl(code, { selling_price: nudgePrice(p.selling_price, 0.1) })}>+10p</button>
+            <button type="button" className="calc-op" onClick={() => setPl(code, { selling_price: roundTo99(p.selling_price) })}>.99</button>
+            <button type="button" className="calc-op go" disabled={r.lowest == null} title={r.lowest == null ? 'Target not reachable' : `Lowest price for ${settings.roiTargetPct}% ROI`}
+              onClick={() => r.lowest != null && setPl(code, { selling_price: r.lowest.toFixed(2) })}>{r.lowest == null ? 'Min —' : <>Min {gbp(r.lowest)}</>}</button>
+          </div>
+        )}
+        {r.feesNotSetUp && <p className="text-[11px] text-amber-300">Fees not set up: all 0 until set under “Fees and ROI target”.</p>}
+        <details className="calc-receipt">
+          <summary className="flex cursor-pointer items-center justify-between gap-2 text-[11px] text-slate-400">
+            <span>▸ Receipt</span>
+            <span className="flex items-center gap-2">
+              <select aria-label={`${label}: listing`} value={p.listing_status} onChange={(ev) => setPl(code, { listing_status: ev.target.value as PlatformValues['listing_status'] })} disabled={!canEdit} className="calc-chip !max-w-none pr-6">
                 <option value="listed">Listed</option><option value="not_listed">Not listed</option>
               </select>
-            </label>
-          </div>
-          {canEdit && (
-            <div className="calc-ops grid grid-cols-4 gap-2.5">
-              <button type="button" className="calc-op" onClick={() => setPl(code, { selling_price: nudgePrice(p.selling_price, -0.1) })}>−10p</button>
-              <button type="button" className="calc-op" onClick={() => setPl(code, { selling_price: nudgePrice(p.selling_price, 0.1) })}>+10p</button>
-              <button type="button" className="calc-op" onClick={() => setPl(code, { selling_price: roundTo99(p.selling_price) })}>Round .99</button>
-              <button type="button" className="calc-op go" disabled={r.lowest == null} title={`Lowest price for ${settings.roiTargetPct}% ROI`}
-                onClick={() => r.lowest != null && setPl(code, { selling_price: r.lowest.toFixed(2) })}>{r.lowest == null ? 'Target not reachable' : <>Min {gbp(r.lowest)}</>}</button>
-            </div>
-          )}
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
-            <span>{r.feesNotSetUp ? `${active.label} fees are all 0 until set under “Fees and ROI target”.` : `Min = lowest price for ${settings.roiTargetPct}% ROI.`}</span>
-            {canEdit && <button type="button" className="underline" onClick={() => setPl(code, { hidden: true })}>Not sold on {active.label}: hide</button>}
-          </div>
-        </div>
-        <div className="receipt" aria-label={`Receipt for ${active.label}`}>
-          <div className="text-center font-bold tracking-[.2em]">RECEIPT</div>
-          <div className="mb-3 text-center text-xs text-stone-500">{active.label}{r.state === 'priced' ? ` · ${gbp(r.price)}` : ''}</div>
-          {receipt.length === 0 ? <p className="py-6 text-center text-stone-500">Enter a selling price to see the breakdown.</p> : receipt.map((l, i) => (
-            <div key={i}>
-              {(l.kind === 'total' || l.kind === 'profit') && <div className="my-2 border-t border-dashed border-stone-400" />}
-              <div className={`ln ${l.kind === 'vat' ? 'pl-4 text-stone-500' : ''} ${l.kind === 'total' ? 'font-bold' : ''} ${l.kind === 'profit' ? `text-base font-bold ${l.amount! < 0 ? 'text-red-700' : 'text-green-700'}` : ''}`}>
-                <span>{l.label}</span><span className="dots" /><span className="w-14 text-right text-stone-500">{l.pct != null ? `${Number(l.pct.toFixed(3))}%` : ''}</span>
-                <span className="w-20 text-right tabular-nums">{l.text}</span>
+              {canEdit && <button type="button" className="underline" onClick={() => setPl(code, { hidden: true })}>Hide</button>}
+            </span>
+          </summary>
+          <div className="receipt mt-2">
+            {receipt.length === 0 ? <p className="py-3 text-center text-stone-500">Enter a selling price.</p> : receipt.map((l, i) => (
+              <div key={i}>
+                {(l.kind === 'total' || l.kind === 'profit') && <div className="my-1.5 border-t border-dashed border-stone-400" />}
+                <div className={`ln ${l.kind === 'vat' ? 'pl-3 text-stone-500' : ''} ${l.kind === 'total' ? 'font-bold' : ''} ${l.kind === 'profit' ? `font-bold ${l.amount! < 0 ? 'text-red-700' : 'text-green-700'}` : ''}`}>
+                  <span>{l.label}</span><span className="dots" /><span className="w-10 text-right text-stone-500">{l.pct != null ? `${Number(l.pct.toFixed(3))}%` : ''}</span>
+                  <span className="w-16 text-right tabular-nums">{l.text}</span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </details>
       </div>
     );
   };
@@ -231,12 +222,13 @@ export function ProductForm({ initial, companies, settings, canEdit, costNote }:
         <label className="sm:col-span-2 lg:col-span-3"><span className="label">Notes</span><input value={v.notes} onChange={setP('notes')} className="input" disabled={!canEdit} /></label>
       </div>
 
-      {renderCalculator()}
+      {visible.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 items-start">{visible.map((x) => renderCalc(x))}</div>
+        : <p className="card text-sm text-slate-500">Every platform is hidden. Show one below.</p>}
       {cmp.hidden.length > 0 && (
         <p className="text-sm text-slate-500">
           Hidden (not sold on): {cmp.hidden.map((code) => (
             <span key={code} className="mr-3">{PLATFORMS.find((x) => x.code === code)!.label}
-              {canEdit && <button type="button" className="ml-1 underline" onClick={() => { setPl(code, { hidden: false }); setTab(code); }}>show</button>}</span>
+              {canEdit && <button type="button" className="ml-1 underline" onClick={() => setPl(code, { hidden: false })}>show</button>}</span>
           ))}
         </p>
       )}

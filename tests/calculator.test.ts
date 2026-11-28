@@ -38,9 +38,19 @@ test('MRG-22 AC3: the receipt lists every cost and adds up to the final cost, th
   assert.equal(Math.round(costs * 100), Math.round(7.4438 * 100));
 });
 
-test('MRG-22 AC4: platform tabs (hidden platforms left out), and read-only for anyone who is not an admin', () => {
-  assert.match(form, /role="tablist"/);
+test('MRG-23 AC1: one calculator per platform, all on one screen (no tabs); hidden platforms left out', () => {
+  assert.doesNotMatch(form, /role="tablist"/);
+  assert.match(form, /visible\.map\(\(x\) => renderCalc\(x\)\)/);
   assert.match(form, /!v\.platforms\[code\]\.hidden/);
+});
+test('MRG-23 AC2: the calculators are compact, several to a row', () => {
+  const css = readFileSync('app/globals.css', 'utf8');
+  const big = Number(css.match(/\.calc-lcd \.big \{ font-size: ([\d.]+)rem/)![1]);
+  assert.ok(big <= 1.75, `display digits ${big}rem`);
+  assert.match(form, /grid gap-4 md:grid-cols-2 xl:grid-cols-3/);
+});
+test('MRG-23 AC3: each calculator has its own receipt, opened on request; read-only for anyone who is not an admin', () => {
+  assert.match(form, /<details className="calc-receipt/);
   assert.match(form, /calc-key[\s\S]*disabled=\{!canEdit\}/);
   assert.match(form, /\{canEdit && \(\s*<div className="calc-ops/);
 });
