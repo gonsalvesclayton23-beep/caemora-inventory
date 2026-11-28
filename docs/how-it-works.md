@@ -5,7 +5,7 @@ CIMS (Caemora Inventory Management System) replaced the MIT-2026.xlsx tracker. T
 - What the app must do, with acceptance criteria: [requirements.md](requirements.md)
 - Setting up and developing: [README](../README.md)
 
-Last updated: 27 Nov 2026 (DSH-04, sales on the dashboard).
+Last updated: 28 Nov 2026 (DSH-05, company ticker; My cases off the dashboard).
 
 ---
 
@@ -48,7 +48,7 @@ New logins start **inactive**: an admin sets the role and ticks Active. All of t
 
 | Screen | What it is for |
 |---|---|
-| **Dashboard** | My cases, today's £→₹ rate (with 30-day history and this month's Wise rate), UK and India clocks, **sales for the last 12 months** for Caemora Ltd, ARC UK G Ltd, Youdent Ltd and Goenche Ltd (see §6a), this month's spend per company (₹ and £ apart), units per month chart, open and critical flag counts, shipments in transit. (The "Balance owed to suppliers" and "Open flags by type" sections were removed on 27 Nov 2026: balances are on Reconciliation, flags on Flags.) |
+| **Dashboard** | A moving ticker of the four companies (Caemora and YouDent logos, Goenche Ltd and ARC UK G Ltd names; pauses on hover, still if the device has motion turned off), today's £→₹ rate (with 30-day history and this month's Wise rate), UK and India clocks, **sales for the last 12 months** for Caemora Ltd, ARC UK G Ltd, Youdent Ltd and Goenche Ltd (see §6a), this month's spend per company (₹ and £ apart), units per month chart, open and critical flag counts, shipments in transit. (The "Balance owed to suppliers" and "Open flags by type" sections were removed on 27 Nov 2026: balances are on Reconciliation, flags on Flags.) |
 | **Purchases** | All purchase lines for a month, **grouped by shipment** (PUR-07): each shipment's header shows its ID, company, destination, status, products, units, ₹ and £ totals and what was received; its products are listed underneath. Lines not yet in a box are under "Not in a shipment yet". A switch shows the old plain list. Filters: month, company, search. CSV export (one row per line). "+ New purchase" enters one invoice |
 | **Shipments** | Boxes in transit and received. On a box: destination, status, tracking, and per product **sent / received / defective / short**, who counted it and when, the count history, and the shortage follow-up |
 | **Invoices** | Upload and find invoice files |
@@ -114,7 +114,7 @@ A flag a person resolved stays resolved; one cleared automatically re-opens if t
 - A **case** is a flag that needs someone to act. It has an **owner**, a **status** (Open, In progress, Resolved) and a **due date** (3 working days, Mon–Fri; bank holidays not skipped).
 - **Which flags create cases** and **who gets them** are set in **Admin → Cases**. To begin with: no invoice number, no invoice date, no price and courier above rate card go to the person who entered the line; "Check with supplier" and "Raise Amazon case" go to the admin until someone is chosen. Lines with no person (spreadsheet imports) go to the admin.
 - **Payment and money cases only ever go to an admin**, and the India team never sees them.
-- People see **"My cases (N)"** on the dashboard and a red badge on the Cases menu. Overdue cases are red.
+- People see their open cases on the **Cases** tab, with a red number badge on the Cases menu item (since 28 Nov 2026 not on the dashboard). Overdue cases are red.
 - A case **closes by itself** when the problem is fixed ("Resolved by fix"). Otherwise the owner presses **Resolve** and must add a note. An admin can **reassign** with a note; the history keeps every step.
 - **Shortage cases:** enter the **Amazon case ID** ("Case raised with Amazon"; also saved on the box line for the future Amazon claims screen, SHP-05). Close with the **outcome**: units found, replacement sent, supplier credit note, or Amazon reimbursed (with the £ amount). The box then shows "Shortage resolved".
 - Flags that were already open when cases were introduced (27 Nov 2026) did **not** become cases.
@@ -170,4 +170,5 @@ Updates so far, in order: dashboard and invoices (22 Nov) → boxes (25 Nov) →
 | 27 Nov 2026 | Receiving: "received" includes defective; short = sent − received; more than sent is refused for now; Amazon case ID kept on the box line for SHP-05 (built later) |
 | 27 Nov 2026 | PUR-07: Purchases grouped by shipment, with a plain-list switch; a shipment shows only the selected month's lines (others counted on its header) |
 | 27 Nov 2026 | PUR-07 AC7: each shipment on the Purchases tab ends with a total row: units, goods, courier paid, total (per currency) |
+| 28 Nov 2026 | DSH-05: a moving company ticker at the top of the dashboard (Caemora and YouDent logos from Clayton's image; Goenche Ltd and ARC UK G Ltd as names). "My cases" removed from the dashboard (changes FLG-03 AC2): the Cases tab and its menu badge are enough |
 | 27 Nov 2026 | DSH-04: dashboard drops "Balance owed to suppliers" and "Open flags by type"; shows last-12-months sales for CMR, ARC, YD and GOE; sales typed in by an admin for now (automation later); £ including VAT, all platforms; everyone can see them |
