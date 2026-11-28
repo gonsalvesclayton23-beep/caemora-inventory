@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { Channel, MarginLineRow, PlatformEntry, ProductCosts } from '@/lib/margin';
 
 export interface ProductLine {
-  id: number; name: string; asin: string | null; fnsku: string | null; owner: string | null; notes: string | null;
+  id: number; cae_code: string; name: string; asin: string | null; fnsku: string | null; owner: string | null; notes: string | null;
   fx_rate: number | string; fx_rate_date: string | null; fx_source: string | null;
   rows: MarginLineRow[]; costs: ProductCosts; entries: PlatformEntry[];
 }

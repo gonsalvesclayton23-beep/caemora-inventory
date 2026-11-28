@@ -6,7 +6,7 @@ export interface PlatformValues {
   referral_pct: string; fba_fee: string; promo_per_unit: string; local_shipping: string; misc_expense: string; ad_pct: string; category_fee_pct: string;
 }
 export interface ProductValues {
-  id?: number; product_id?: number | null;
+  id?: number; product_id?: number | null; cae_code?: string | null;
   name: string; asin: string; fnsku: string; owner: string; notes: string;
   product_cost: string; product_cost_currency: 'INR' | 'GBP'; courier_cost: string; courier_currency: 'INR' | 'GBP';
   fx_rate: string; fx_rate_date: string | null; fx_source: string | null;

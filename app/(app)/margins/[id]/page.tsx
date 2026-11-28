@@ -31,7 +31,7 @@ export default async function MarginProductPage({ params, searchParams }: { para
   return (
     <div className="space-y-4">
       <Link href="/margins" className="text-sm text-slate-500 hover:underline">← Product margins</Link>
-      <h1 className="text-2xl font-semibold">{p.name}</h1>
+      <h1 className="text-2xl font-semibold"><span className="mr-2 tabular-nums text-slate-500">{p.cae_code}</span>{p.name}</h1>
       {sp.saved && <p className="text-sm text-emerald-600">Line created.</p>}
       {!admin && <p className="text-sm text-slate-500">Only an admin can change margins.</p>}
 

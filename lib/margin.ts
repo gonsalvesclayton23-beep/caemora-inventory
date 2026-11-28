@@ -269,7 +269,7 @@ export const copyToCompany = (i: MarginInput, companyVatPct: number): MarginInpu
 
 /** A row of v_margin_lines. */
 export interface MarginLineRow {
-  id: number; channel: Channel; company_code: string; company_name: string; company_vat_pct: number | string;
+  id: number; channel: Channel; company_code: string; company_name: string; company_vat_pct: number | string; cae_code?: string | null;
   product_id: number | null; name: string; asin: string | null; fnsku: string | null; listing_status: string;
   owner: string | null; notes: string | null;
   product_cost: number | string; product_cost_currency: Cur; courier_cost: number | string; courier_currency: Cur;
@@ -294,7 +294,7 @@ export function inputFromRow(r: MarginLineRow): MarginInput {
 // ---------------------------------------------------------------- export (MRG-07 AC5)
 
 export const EXPORT_COLUMNS = [
-  'name', 'company', 'company_name', 'channel', 'asin', 'fnsku', 'listing_status', 'owner', 'notes',
+  'cae_code', 'name', 'company', 'company_name', 'channel', 'asin', 'fnsku', 'listing_status', 'owner', 'notes',
   'product_cost', 'product_cost_currency', 'courier_cost', 'courier_currency', 'fx_rate', 'fx_rate_label',
   'referral_pct', 'fba_fee', 'ads_per_unit', 'local_shipping', 'misc_expense', 'ads_pct', 'category_fee_pct', 'selling_price', 'tax_rate',
   'landed_cost', 'referral_fee', 'referral_fee_vat', 'fba_fee_vat', 'fba_surcharge', 'digital_services_tax', 'selling_fee', 'category_fee', 'ebay_fees', 'ad_fees',
@@ -309,7 +309,7 @@ export function exportRow(r: MarginLineRow, s: MarginSettings): Record<(typeof E
   const amazon = isAmazon(r.channel), fba = r.channel === 'AMAZON', ebayLine = r.channel === 'EBAY';
   const low = lowestPriceForRoi(i, s);
   return {
-    name: r.name, company: r.company_code, company_name: r.company_name, channel: platformLabel(r.channel),
+    cae_code: r.cae_code ?? '', name: r.name, company: r.company_code, company_name: r.company_name, channel: platformLabel(r.channel),
     asin: r.asin, fnsku: r.fnsku, listing_status: r.listing_status === 'listed' ? 'Listed' : 'Not listed', owner: r.owner, notes: r.notes,
     product_cost: i.productCost, product_cost_currency: i.productCostCurrency, courier_cost: i.courierCost, courier_currency: i.courierCurrency,
     fx_rate: i.fxRate, fx_rate_label: fxLabel(r.fx_source, r.fx_rate_date),
