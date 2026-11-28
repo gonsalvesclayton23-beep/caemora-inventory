@@ -11,6 +11,8 @@ body { @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 a
 .table th { @apply border-b border-slate-200 px-2 py-2 text-left font-medium text-slate-500 dark:border-slate-800; }
 .table td { @apply border-b border-slate-100 px-2 py-2 align-top dark:border-slate-800; }
 .num { @apply text-right tabular-nums; }
+/* headings over figures line up with them (the rule above would otherwise lose to ".table th") */
+.table th.num { @apply text-right; }
 
 /* Chart tokens (dataviz reference palette, slot 1). Dark mode has its own validated step. */
 :root { --series-1: #2a78d6; --series-2: #f47230; --series-3: #00b894; --chart-grid: #e7e6e2; --chart-text: #52514e; }

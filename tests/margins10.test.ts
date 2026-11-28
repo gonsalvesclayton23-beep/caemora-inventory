@@ -142,3 +142,8 @@ test('MRG-18 AC1/AC2/AC3: Etsy transaction fee 6.5% = £0.65 and payment fee £0
   assert.ok(t.includes('Payment fee = £0.20'));
   assert.ok(lines(i, { ...s, platforms: { ...s.platforms, ETSY: { ...s.platforms.ETSY, paymentFixed: 0.25 } } }).includes('Payment fee = £0.25'));
 });
+
+test('MRG-12 AC1: column headings over figures are right-aligned too, so each figure sits under its own heading', () => {
+  const css = readFileSync('app/globals.css', 'utf8');
+  assert.match(css, /\.table th\.num\s*\{[^}]*text-right/);
+});
