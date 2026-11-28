@@ -95,6 +95,27 @@ export default async function Dashboard() {
         wise={wiseRow ? Number(wiseRow.inr_per_gbp) : null} wiseMonth={monthLabel(month)}
         history={last30Days(daily, today).map(({ date, inrPerGbp }) => ({ date, inrPerGbp }))} />
 
+      {/* DSH-04: sales, straight after the exchange rate */}
+      <section className="card space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-medium">Sales, last 12 months</h2>
+          <span className="text-xs text-slate-500">
+            £, including VAT, all platforms · {monthLabel(months12[0])} to {monthLabel(months12[11])}
+            {isAdmin(me) && <> · <Link href="/sales" className="text-indigo-600 hover:underline dark:text-indigo-400">Enter sales</Link></>}
+          </span>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {salesTilesData.map((t) => (
+            <div key={t.code} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+              <div className="text-sm text-slate-500">{t.name}</div>
+              <div className="text-2xl font-semibold tabular-nums">{money(t.total, 'GBP', 0)}</div>
+              <div className="text-xs text-slate-500">{t.missing === 12 ? 'No months entered yet' : t.missing ? `${t.missing} month${t.missing === 1 ? '' : 's'} not entered` : 'All 12 months entered'}</div>
+              <SalesBars name={t.name} months={t.months} />
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* DSH-02: spend by currency, never added together or converted */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {([['INR', 'Spent (INR)', 'inr'], ['GBP', 'Spent (GBP)', 'gbp']] as const).map(([cur, title, key]) => (
@@ -137,25 +158,6 @@ export default async function Dashboard() {
         </table>
       </section>
 
-      <section className="card space-y-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-medium">Sales, last 12 months</h2>
-          <span className="text-xs text-slate-500">
-            £, including VAT, all platforms · {monthLabel(months12[0])} to {monthLabel(months12[11])}
-            {isAdmin(me) && <> · <Link href="/sales" className="text-indigo-600 hover:underline dark:text-indigo-400">Enter sales</Link></>}
-          </span>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {salesTilesData.map((t) => (
-            <div key={t.code} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-              <div className="text-sm text-slate-500">{t.name}</div>
-              <div className="text-2xl font-semibold tabular-nums">{money(t.total, 'GBP', 0)}</div>
-              <div className="text-xs text-slate-500">{t.missing === 12 ? 'No months entered yet' : t.missing ? `${t.missing} month${t.missing === 1 ? '' : 's'} not entered` : 'All 12 months entered'}</div>
-              <SalesBars name={t.name} months={t.months} />
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getProfile, isAdmin } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { AREA_OPTIONS, AUDIT_ACTIONS, AUDIT_PAGE_SIZE, describeEntry, details, parseAuditFilters, ukTime } from '@/lib/audit';
+import { AREA_OPTIONS, AUDIT_ACTIONS, AUDIT_PAGE_SIZE, AUDIT_ZONES, auditTime, auditZone, describeEntry, details, parseAuditFilters } from '@/lib/audit';
 import { auditPage } from './query';
 
 export const dynamic = 'force-dynamic';
@@ -17,13 +17,15 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   if (!isAdmin(me)) redirect('/');
   const sp = await searchParams;
   const f = parseAuditFilters(sp);
+  const zone = auditZone(sp.tz);
   const supabase = await createClient();
   const [{ rows, error, count, lookups }, { data: people }] = await Promise.all([
     auditPage(f, AUDIT_PAGE_SIZE, f.offset),
     supabase.from('profiles').select('id, full_name, email').order('full_name'),
   ]);
   const pages = Math.max(1, Math.ceil(count / AUDIT_PAGE_SIZE));
-  const keep = Object.fromEntries(Object.entries({ user: f.user, area: f.area, action: f.action, from: f.from, to: f.to }).filter(([, v]) => v)) as Record<string, string>;
+  const keep = Object.fromEntries(Object.entries({ user: f.user, area: f.area, action: f.action, from: f.from, to: f.to, tz: zone === 'india' ? 'india' : null }).filter(([, v]) => v)) as Record<string, string>;
+  const zoneLink = (z: string) => `/audit?${new URLSearchParams({ ...keep, tz: z })}`;
   const pageLink = (n: number) => `/audit?${new URLSearchParams({ ...keep, page: String(n) })}`;
 
   return (
@@ -32,7 +34,13 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
         <h1 className="text-2xl font-semibold">Audit log</h1>
         <a href={`/audit/export?${new URLSearchParams(keep)}`} className="btn-ghost border border-slate-300 dark:border-slate-700">Export CSV</a>
       </div>
-      <p className="text-sm text-slate-500">Every change anyone makes, and every sign-in, sign-out and failed sign-in. Viewing pages is not recorded. Entries cannot be edited or deleted. Times are UK time.</p>
+      <p className="text-sm text-slate-500">Every change anyone makes, and every sign-in, sign-out and failed sign-in. Viewing pages is not recorded. Entries cannot be edited or deleted.</p>
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-slate-500">Show times in:</span>
+        {(Object.keys(AUDIT_ZONES) as (keyof typeof AUDIT_ZONES)[]).map((z) => (
+          <Link key={z} href={zoneLink(z)} className={`rounded-full border px-3 py-1 ${zone === z ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-slate-300 dark:border-slate-700'}`}>{AUDIT_ZONES[z].label}</Link>
+        ))}
+      </div>
 
       <form className="flex flex-wrap items-end gap-2">
         <label><span className="label text-xs">Person</span>
@@ -55,8 +63,9 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
         </label>
         <label><span className="label text-xs">From</span><input type="date" name="from" defaultValue={f.from ?? ''} className="input w-40" /></label>
         <label><span className="label text-xs">To</span><input type="date" name="to" defaultValue={f.to ?? ''} className="input w-40" /></label>
+        {zone === 'india' && <input type="hidden" name="tz" value="india" />}
         <button className="btn">Show</button>
-        {Object.keys(keep).length > 0 && <Link href="/audit" className="btn-ghost">Clear</Link>}
+        {Object.keys(keep).filter((k) => k !== 'tz').length > 0 && <Link href={zone === 'india' ? '/audit?tz=india' : '/audit'} className="btn-ghost">Clear</Link>}
       </form>
 
       {error && <p className="text-red-600">{error.message}</p>}
@@ -64,14 +73,14 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
 
       <div className="card overflow-x-auto">
         <table className="table">
-          <thead><tr><th>When</th><th>Who</th><th>Area</th><th>What</th><th>Record</th><th>Details</th></tr></thead>
+          <thead><tr><th>When ({AUDIT_ZONES[zone].label})</th><th>Who</th><th>Area</th><th>What</th><th>Record</th><th>Details</th></tr></thead>
           <tbody>
             {rows.map((r) => {
               const d = describeEntry(r, lookups);
               const extra = details(r);
               return (
                 <tr key={r.id}>
-                  <td className="whitespace-nowrap text-xs">{ukTime(r.changed_at)}</td>
+                  <td className="whitespace-nowrap text-xs">{auditTime(r.changed_at, zone)}</td>
                   <td className="whitespace-nowrap">{r.changed_by_name || r.changed_by_email || (r.changed_by ? 'Unknown user' : r.action === 'SIGN_IN_FAILED' ? '—' : 'System')}</td>
                   <td className="whitespace-nowrap">{d.area}</td>
                   <td className={`whitespace-nowrap font-medium ${actionTone[r.action] ?? ''}`}>{d.action}</td>

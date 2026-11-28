@@ -69,3 +69,18 @@ test('AUD AC6: suppliers, flags and "Not a match" have readable names', () => {
 test('AUD export: CSV has when, who, area, action, record and changes', () => {
   assert.deepEqual(AUDIT_EXPORT_COLUMNS, ['when_uk', 'who', 'email', 'area', 'action', 'record', 'changes', 'reason']);
 });
+
+test('AUD AC8: the log shows every time in one time zone, UK or India, chosen on the screen (UK unless India is picked)', async () => {
+  const { auditTime, auditZone, AUDIT_ZONES } = await import('../lib/audit.ts');
+  assert.deepEqual(Object.keys(AUDIT_ZONES), ['uk', 'india']);
+  assert.equal(auditZone(undefined), 'uk');
+  assert.equal(auditZone('india'), 'india');
+  assert.equal(auditZone('mars'), 'uk');
+  // 10:00 UTC on 27 Nov = 10:00 UK (GMT) = 15:30 India
+  assert.equal(auditTime('2026-11-27T10:00:00Z', 'uk'), '27 Nov 2026, 10:00:00 UK');
+  assert.equal(auditTime('2026-11-27T10:00:00Z', 'india'), '27 Nov 2026, 15:30:00 India');
+  // summer: UK is on BST
+  assert.equal(auditTime('2026-07-01T10:00:00Z', 'uk'), '01 Jul 2026, 11:00:00 UK');
+  const page = readFileSync('app/(app)/audit/page.tsx', 'utf8'), csv = readFileSync('app/(app)/audit/export/route.ts', 'utf8');
+  assert.doesNotMatch(page + csv, /ukTime\(/, 'no screen is fixed to UK time any more');
+});
