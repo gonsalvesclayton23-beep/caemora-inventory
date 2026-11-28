@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { createProduct, savePurchase, searchProducts, type ProductHit, type PurchaseInput } from '../actions';
+import { checkProductDuplicate, createProduct, savePurchase, searchProducts, type ProductHit, type PurchaseInput } from '../actions';
 import { money, monthLabel } from '@/lib/format';
 import { uploadInvoiceFile, type UploadedFile } from '@/lib/invoiceUpload';
 
@@ -239,6 +239,13 @@ function ProductSearch({ company, onPick }: { company: string; onPick: (p: Produ
   const [draft, setDraft] = useState({ fnsku: '', asin: '', channel: 'FBA' });
   const [err, setErr] = useState<string | null>(null);
   const [, start] = useTransition();
+  // PRD-08: is the new product already created? (name ignoring capitals/spaces/punctuation, or its FNSKU/ASIN)
+  const [dup, setDup] = useState<Awaited<ReturnType<typeof checkProductDuplicate>> | null>(null);
+  useEffect(() => {
+    if (!creating) { setDup(null); return; }
+    const t = setTimeout(async () => setDup(await checkProductDuplicate({ name: q, fnsku: draft.fnsku, asin: draft.asin })), 300);
+    return () => clearTimeout(t);
+  }, [creating, q, draft.fnsku, draft.asin]);
 
   useEffect(() => {
     const t = setTimeout(() => start(async () => setHits(await searchProducts(q))), 250);
@@ -252,6 +259,7 @@ function ProductSearch({ company, onPick }: { company: string; onPick: (p: Produ
 
   async function create() {
     setErr(null);
+    if (dup?.message) { setErr(dup.message); return; }
     const res = await createProduct({ name: q, company, ...draft });
     if (res.error) setErr(res.error);
     else if (res.product) { pick(res.product); setCreating(false); setDraft({ fnsku: '', asin: '', channel: 'FBA' }); }
@@ -288,8 +296,17 @@ function ProductSearch({ company, onPick }: { company: string; onPick: (p: Produ
           <select className="input" value={draft.channel} onChange={(e) => setDraft({ ...draft, channel: e.target.value })}>
             {['FBA', 'FBM', 'EBAY', 'ONBUY', 'SHOPIFY'].map((c) => <option key={c}>{c}</option>)}
           </select>
-          <div className="flex gap-2"><button type="button" className="btn" onClick={create}>Add</button><button type="button" className="btn-ghost" onClick={() => setCreating(false)}>Cancel</button></div>
-          {err && <p className="text-sm text-red-600 sm:col-span-4">{err}</p>}
+          <div className="flex gap-2"><button type="button" className="btn" onClick={create} disabled={!!dup?.exact}>Add</button><button type="button" className="btn-ghost" onClick={() => setCreating(false)}>Cancel</button></div>
+          {dup?.message && (
+            <div role="alert" className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900 sm:col-span-4 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+              <span>{dup.message}</span>
+              {dup.product && <button type="button" className="btn-ghost border border-amber-400" onClick={() => { pick(dup.product!); setCreating(false); }}>Use this one</button>}
+            </div>
+          )}
+          {!dup?.exact && (dup?.similar.length ?? 0) > 0 && (
+            <p className="text-xs text-slate-600 sm:col-span-4 dark:text-slate-300">Similar products already created: {dup!.similar.map((x) => x.name).join(' · ')}. Add only if this is a different product.</p>
+          )}
+          {err && err !== dup?.message && <p className="text-sm text-red-600 sm:col-span-4">{err}</p>}
         </div>
       )}
     </div>

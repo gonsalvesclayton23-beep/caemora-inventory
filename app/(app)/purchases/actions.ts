@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { friendlyError, type Result } from '@/lib/data';
+import { duplicateMessage, findDuplicates } from '@/lib/duplicates';
 
 export interface ProductHit {
   id: number;
@@ -41,10 +42,28 @@ export async function searchProducts(q: string): Promise<ProductHit[]> {
   return products.slice(0, 20).map((p) => ({ ...p, last: last.get(p.id) ?? null }));
 }
 
+/** PRD-08: is this new product already created? Exact duplicates come back with the product, ready to use. */
+export async function checkProductDuplicate(input: { name: string; fnsku?: string; asin?: string }) {
+  if ((input.name ?? '').trim().length < 3 && !input.fnsku && !input.asin) return { exact: null, message: null, product: null, similar: [] };
+  const supabase = await createClient();
+  const { data } = await supabase.from('products').select('id, name, listings(fnsku, asin)').limit(10000);
+  const existing = (data ?? []).map((p: any) => ({ id: p.id, name: p.name, asins: p.listings.map((l: any) => l.asin), fnskus: p.listings.map((l: any) => l.fnsku) }));
+  const d = findDuplicates({ name: input.name, fnsku: input.fnsku, asin: input.asin }, existing);
+  let product: ProductHit | null = null;
+  if (d.exact) {
+    const hits = await searchProducts(d.exact.name);
+    product = hits.find((h) => h.id === d.exact!.id) ?? null;
+  }
+  return { exact: d.exact, message: d.exact ? duplicateMessage(d.exact) : null, product, similar: d.similar };
+}
+
 export async function createProduct(input: { name: string; company: string; fnsku?: string; asin?: string; channel: string }) {
   const supabase = await createClient();
   const name = input.name.trim();
   if (!name) return { error: 'Enter a product name.' };
+  // PRD-08: refuse a product that already exists before creating anything (the database also refuses it)
+  const dup = await checkProductDuplicate({ name, fnsku: input.fnsku, asin: input.asin });
+  if (dup.message) return { error: dup.message };
   const { data: product, error } = await supabase.from('products').insert({ name }).select('id, name').single();
   if (error) return { error: friendlyError(error) };
   const fnsku = input.fnsku?.trim().toUpperCase() || null;

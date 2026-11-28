@@ -46,8 +46,14 @@ select expect((select value #>> '{}' from settings where key = 'margin_etsy_fee_
 select test_as('00000000-0000-0000-0000-00000000000a');
 select save_margin_product('{"name": "ENO Lemon 5g (pack of 6)", "asin": "B0ENO00001", "product_cost": 60, "courier_cost": 20, "fx_rate": 118,
   "platforms": [{"channel": "AMAZON", "company_code": "GOE", "referral_pct": 15, "fba_fee": 2.72, "promo_per_unit": 0.5, "selling_price": 6.99}]}');
-select save_margin_product('{"name": "ENO lemon 5g pack of 6", "product_cost": 65, "courier_cost": 20, "fx_rate": 120,
-  "platforms": [{"channel": "EBAY", "company_code": "YD", "ad_pct": 8, "local_shipping": 2.76, "misc_expense": 0.05, "selling_price": 5.99}]}');
+-- the second line was saved before MRG-19 refused same-name lines, so it is loaded the way older data was (directly)
+reset role;
+select test_as(null);
+with p as (insert into margin_products (name, product_cost, courier_cost, fx_rate) values ('ENO lemon 5g pack of 6', 65, 20, 120) returning id)
+insert into margin_lines (margin_product_id, channel, company_code, ad_pct, local_shipping, misc_expense, selling_price)
+select id, 'EBAY', 'YD', 8, 2.76, 0.05, 5.99 from p;
+set role authenticated;
+select test_as('00000000-0000-0000-0000-00000000000a');
 update margin_lines set selling_price = 6.49 where id = (select id from v_margin_lines where name = 'ENO lemon 5g pack of 6');
 select expect((select count(*) from margin_products where name ilike 'ENO%') = 2, 'MRG-09 AC6: matching lines stay separate until confirmed');
 select test_as('00000000-0000-0000-0000-00000000000b');
