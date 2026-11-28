@@ -41,3 +41,18 @@ export function monthSummary(m: OriginMonth, currency: string) {
   if (!m.units) return `${monthLong(m.month)}: no orders`;
   return `${monthLong(m.month)}: ${m.units.toLocaleString('en-GB')} units · price ${perUnitMoney(m.price, currency)}/unit · courier ${perUnitMoney(m.courierPerUnit, currency)}/unit · total ${perUnitMoney(m.total, currency)}/unit`;
 }
+
+/** A round top for an axis: 8,412 → 10,000; 236 → 250. */
+export function niceMax(v: number) {
+  if (v <= 0) return 1;
+  const p = 10 ** Math.floor(Math.log10(v)), n = v / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+}
+
+/** DSH-06 AC5: the two scales of the single chart: units on the left, price and courier per unit on the right. */
+export function chartScales(data: OriginMonth[]) {
+  return {
+    unitsMax: niceMax(Math.max(0, ...data.map((d) => d.units))),
+    moneyMax: niceMax(Math.max(0, ...data.map((d) => Math.max(d.price ?? 0, d.courierPerUnit ?? 0)))),
+  };
+}

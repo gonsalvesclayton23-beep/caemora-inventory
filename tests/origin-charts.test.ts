@@ -34,3 +34,17 @@ test('DSH-06 AC4: hovering a month shows units, price, courier and total per uni
   const [nov] = originSeries([{ month: '2026-11-01', origin: 'CN', units: 300, goods: 495, courier: 120 }], 'CN', '2026-11-28').slice(-1);
   assert.equal(monthSummary(nov, 'GBP'), 'Nov 2026: 300 units · price £1.65/unit · courier £0.40/unit · total £2.05/unit');
 });
+
+test('DSH-06 AC5: one chart per country, three bars a month: units (left scale), price and courier per unit (right scale)', async () => {
+  const { chartScales } = await import('../lib/origin.ts');
+  const s = chartScales([
+    { month: '2026-10-01', units: 8412, goods: 0, courier: 0, price: 196, courierPerUnit: 53, total: 249 },
+    { month: '2026-11-01', units: 7850, goods: 0, courier: 0, price: 236, courierPerUnit: 70, total: 306 },
+  ]);
+  assert.deepEqual(s, { unitsMax: 10000, moneyMax: 250 });
+  const box = readFileSync('components/OriginCharts.tsx', 'utf8');
+  assert.doesNotMatch(box, /UnitsChart|CostPerUnitChart/, 'no second chart per country');
+  const chart = readFileSync('components/OriginChart.tsx', 'utf8');
+  assert.match(chart, /left scale/);
+  assert.match(chart, /right scale/);
+});
