@@ -17,3 +17,27 @@ body { @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 a
 /* Chart tokens (dataviz reference palette, slot 1). Dark mode has its own validated step. */
 :root { --series-1: #2a78d6; --series-2: #f47230; --series-3: #00b894; --chart-grid: #e7e6e2; --chart-text: #52514e; }
 @media (prefers-color-scheme: dark) { :root { --series-1: #3987e5; --series-2: #e76624; --series-3: #00a888; --chart-grid: #34332f; --chart-text: #c3c2b7; } }
+
+/* MRG-22: the margin calculator: a calculator body with a display and keys, and a till receipt. Same look in light and dark mode. */
+.calc { @apply rounded-[28px] border border-slate-700 p-5 text-slate-100; background: linear-gradient(160deg, #1e293b, #0f172a); box-shadow: 0 20px 50px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06); }
+.calc-lcd { @apply rounded-2xl border px-4 py-3; border-color: #14532d; background: linear-gradient(180deg, #0c1a12, #0a140e); box-shadow: inset 0 2px 10px rgba(0,0,0,.7); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #86efac; }
+.calc-lcd.is-red { border-color: #7f1d1d; background: linear-gradient(180deg, #1f0a0a, #150707); color: #fca5a5; }
+.calc-lcd .big { font-size: 2.75rem; line-height: 1.1; text-align: right; color: #bbf7d0; text-shadow: 0 0 12px rgba(74,222,128,.35); }
+.calc-lcd.is-red .big { color: #fecaca; text-shadow: 0 0 12px rgba(248,113,113,.35); }
+.calc-key { @apply block rounded-2xl border border-slate-600 px-3 py-2; background: linear-gradient(180deg, #334155, #1e293b); box-shadow: 0 3px 0 #0f172a; }
+.calc-key .l { @apply text-xs text-slate-400; }
+.calc-key input, .calc-key select { @apply w-full bg-transparent text-right text-xl text-slate-50 outline-none; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.calc-key select { @apply text-base; font-family: inherit; text-align-last: right; }
+.calc-key select option { @apply bg-slate-900; }
+.calc-key:focus-within { @apply border-sky-400; }
+.calc-key.price { border-color: #3b82f6; background: linear-gradient(180deg, #1d4ed8, #1e40af); }
+.calc-key.price .l { @apply text-blue-200; }
+.calc-key.price input { font-size: 1.75rem; }
+.calc-op { @apply rounded-xl border border-slate-500 bg-slate-600 py-2 text-center text-sm font-semibold text-slate-50 hover:bg-slate-500 disabled:opacity-40; box-shadow: 0 3px 0 #0f172a; }
+.calc-op.go { @apply border-amber-300 bg-amber-500 text-stone-900 hover:bg-amber-400; }
+.calc-tab { @apply rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs text-slate-300 hover:bg-slate-700; }
+.calc-tab[aria-selected="true"] { @apply border-blue-600 bg-blue-600 text-white; }
+.receipt { @apply relative rounded-md px-6 pb-8 pt-5 text-sm text-stone-900; background: #fffdf7; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; box-shadow: 0 12px 30px rgba(0,0,0,.3); }
+.receipt::after { content: ""; position: absolute; left: 0; right: 0; bottom: -10px; height: 12px; background: radial-gradient(circle at 6px -2px, transparent 7px, #fffdf7 7.5px) repeat-x; background-size: 12px 12px; }
+.receipt .ln { @apply flex items-baseline gap-2; }
+.receipt .dots { @apply flex-1 border-b border-dotted border-stone-400; transform: translateY(-4px); }

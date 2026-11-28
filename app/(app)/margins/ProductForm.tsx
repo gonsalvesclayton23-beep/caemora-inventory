@@ -6,6 +6,7 @@ import {
 import type { Result } from '@/lib/data';
 import { checkMarginDuplicate, saveMarginProduct } from './actions';
 import type { PlatformValues, ProductValues } from './values';
+import { displayState, nudgePrice, receiptLines, roundTo99 } from '@/lib/calculator';
 
 const tone = { red: 'text-red-600 dark:text-red-400', green: 'text-emerald-600 dark:text-emerald-400', grey: 'text-slate-500' } as const;
 const f = (s: string) => (s.trim() === '' ? null : Number(s));
@@ -84,81 +85,91 @@ export function ProductForm({ initial, companies, settings, canEdit, costNote }:
     </select>
   );
 
-  const renderBox = ({ code, label }: { code: Channel; label: string }, inCard: boolean) => {
-          const p = v.platforms[code];
-          const r = cmp.rows.find((x) => x.channel === code)!;
-          const e = entries.find((x) => x.channel === code)!;
-          return (
-            <div key={code} className={`${inCard ? 'card ' : 'rounded-lg border border-slate-200 p-3 dark:border-slate-800 '}space-y-3`}>
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-medium">{label}</h3>
-                {canEdit && <button type="button" className="text-xs text-slate-500 underline" onClick={() => setPl(code, { hidden: true })}>Not sold here: hide</button>}
-              </div>
-              {r.feesNotSetUp && <p className="text-xs text-amber-600 dark:text-amber-400">Fees not set up: {label}&apos;s fees are all 0 until an admin enters them under “Fees and ROI target”.</p>}
-              <div className="grid grid-cols-2 gap-2">
-                <label className="col-span-2"><span className="label text-xs">Company (sets the tax)</span>
-                  <select value={p.company_code} onChange={(ev) => setPl(code, { company_code: ev.target.value })} className="input" disabled={!canEdit}>
-                    {companies.map((c) => <option key={c.code} value={c.code}>{c.name} ({Number(c.default_vat_pct)}%)</option>)}
-                  </select>
-                </label>
-                {num(code, 'selling_price', 'Selling price (£)')}
-                <div><span className="label text-xs">Own tax rate (%)</span>
-                  <input value={p.tax_override_pct} onChange={(ev) => setPl(code, { tax_override_pct: ev.target.value })} placeholder="company rate" inputMode="decimal" className="input" disabled={!canEdit} />
-                </div>
-                <div className="col-span-2 flex items-center justify-between text-xs text-slate-500">
-                  <span>{taxLabel(e)}</span>
-                  {canEdit && p.tax_override_pct !== '' && <button type="button" className="underline" onClick={() => setPl(code, { tax_override_pct: '' })}>Use company rate</button>}
-                </div>
-                {code === 'AMAZON' && <>
-                  {num(code, 'referral_pct', 'Referral fee %')}
-                  {num(code, 'fba_fee', 'FBA fee (£ per unit)')}
-                  {num(code, 'misc_expense', 'Miscellaneous (£ per order)')}
-                  {num(code, 'promo_per_unit', 'Ads (£ per unit)')}
-                </>}
-                {code === 'AMAZON_FBM' && <>
-                  {num(code, 'referral_pct', 'Referral fee %')}
-                  {num(code, 'local_shipping', 'Local courier (£ per order)')}
-                  {num(code, 'misc_expense', 'Miscellaneous (£ per order)')}
-                  {num(code, 'promo_per_unit', 'Ads (£ per unit)')}
-                </>}
-                {code === 'EBAY' && num(code, 'category_fee_pct', 'Category fee %')}
-                {code !== 'AMAZON' && code !== 'AMAZON_FBM' && <>
-                  {num(code, 'local_shipping', code === 'EBAY' ? 'Local shipping (£)' : 'Shipping (£)')}
-                  {num(code, 'misc_expense', 'Miscellaneous (£)')}
-                  {num(code, 'ad_pct', 'Ads %')}
-                </>}
-                <label><span className="label text-xs">Listing</span>
-                  <select value={p.listing_status} onChange={(ev) => setPl(code, { listing_status: ev.target.value as PlatformValues['listing_status'] })} className="input" disabled={!canEdit}>
-                    <option value="listed">Listed</option><option value="not_listed">Not listed</option>
-                  </select>
-                </label>
-              </div>
-              <div className="rounded-lg bg-slate-50 p-2 text-sm dark:bg-slate-800/50">
-                <span className="text-slate-500">Lowest price for {settings.roiTargetPct}% ROI: </span>
-                {r.lowest == null ? <span className="font-medium">Target not reachable</span> : <>
-                  <span className="font-semibold">{gbp(r.lowest)}</span>
-                  {canEdit && <button type="button" className="ml-2 underline" onClick={() => setPl(code, { selling_price: r.lowest!.toFixed(2) })}>Use this price</button>}
-                </>}
-              </div>
-              {/* MRG-12: every fee as £ (with its %), VAT on its own line, figures lined up */}
-              {r.state === 'priced' && (
-                <table className="w-full text-sm">
-                  <tbody>
-                    <tr><td className="py-0.5 text-slate-500">Landed cost</td><td></td><td className="py-0.5 text-right tabular-nums">{gbp(cmp.landed)}</td></tr>
-                    {breakdown(entryInput(costs, e), settings).map((l, li) => (
-                      <tr key={li}>
-                        <td className={`py-0.5 ${l.label.startsWith('VAT on') ? 'pl-3 text-slate-500' : ''}`}>{l.label}</td>
-                        <td className="py-0.5 pr-2 text-right tabular-nums text-slate-500">{l.pct != null ? `${Number(l.pct.toFixed(3))}%` : ''}</td>
-                        <td className="py-0.5 text-right tabular-nums">{gbp(l.amount)}</td>
-                      </tr>
-                    ))}
-                    <tr className="border-t border-slate-200 font-medium dark:border-slate-700"><td className="py-0.5">Final cost</td><td></td><td className="py-0.5 text-right tabular-nums">{gbp(r.result!.finalCost)}</td></tr>
-                    <tr className="font-medium"><td className="py-0.5">Profit</td><td></td><td className={`py-0.5 text-right tabular-nums ${r.result!.profit < 0 ? 'text-red-600 dark:text-red-400' : ''}`}>{gbp(r.result!.profit)}</td></tr>
-                  </tbody>
-                </table>
-              )}
+  // MRG-22: the margin line as a calculator: platform tabs, a display, keys, quick price buttons and a receipt
+  const visible = PLATFORMS.filter(({ code }) => !v.platforms[code].hidden);
+  const [tab, setTab] = useState<Channel>(visible[0]?.code ?? 'AMAZON');
+  const active = visible.find((x) => x.code === tab) ?? visible[0];
+  const calcKey = (code: Channel, k: keyof PlatformValues, label: string, big = false) => (
+    <label key={`${code}${String(k)}`} className={`calc-key ${big ? 'price col-span-3' : ''}`}><span className="l">{label}</span>
+      <input value={String(v.platforms[code][k] ?? '')} onChange={(e) => setPl(code, { [k]: e.target.value })} inputMode="decimal" disabled={!canEdit} />
+    </label>
+  );
+  const renderCalculator = () => {
+    if (!active) return <p className="card text-sm text-slate-500">Every platform is hidden. Show one below.</p>;
+    const code = active.code;
+    const p = v.platforms[code];
+    const r = cmp.rows.find((x) => x.channel === code)!;
+    const e = entries.find((x) => x.channel === code)!;
+    const d = displayState(r, cmp.landed);
+    const receipt = r.state === 'priced' ? receiptLines(costs, e, settings) : [];
+    return (
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)]">
+        <div className="calc space-y-4">
+          <div className="flex items-center justify-between text-[11px] tracking-[.18em] text-slate-500">
+            <span>CIMS · MARGIN CALCULATOR</span><span className="tabular-nums">{v.cae_code ?? 'NEW LINE'}</span>
+          </div>
+          <div role="tablist" aria-label="Platform" className="flex flex-wrap gap-1.5">
+            {visible.map((x) => (
+              <button key={x.code} type="button" role="tab" aria-selected={x.code === code} className="calc-tab" onClick={() => setTab(x.code)}>{x.label}</button>
+            ))}
+          </div>
+          <div className={`calc-lcd ${d.tone === 'red' ? 'is-red' : ''}`} aria-live="polite">
+            <div className="flex justify-between gap-2 text-xs opacity-80"><span>PROFIT PER UNIT</span><span>LANDED {d.landed} · FINAL {d.final}</span></div>
+            <div className="big tabular-nums">{d.profit}</div>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-xl tabular-nums">{d.roi}</span>
+              <span className="rounded-full bg-black/30 px-2 py-0.5 font-sans text-xs">{d.status}</span>
             </div>
-          );
+          </div>
+          <div className="grid grid-cols-3 gap-2.5">
+            {calcKey(code, 'selling_price', 'Selling price (£)', true)}
+            {code === 'AMAZON' && <>{calcKey(code, 'referral_pct', 'Referral fee %')}{calcKey(code, 'fba_fee', 'FBA fee £')}{calcKey(code, 'promo_per_unit', 'Ads £/unit')}{calcKey(code, 'misc_expense', 'Miscellaneous £')}</>}
+            {code === 'AMAZON_FBM' && <>{calcKey(code, 'referral_pct', 'Referral fee %')}{calcKey(code, 'local_shipping', 'Local courier £')}{calcKey(code, 'promo_per_unit', 'Ads £/unit')}{calcKey(code, 'misc_expense', 'Miscellaneous £')}</>}
+            {code === 'EBAY' && calcKey(code, 'category_fee_pct', 'Category fee %')}
+            {code !== 'AMAZON' && code !== 'AMAZON_FBM' && <>{calcKey(code, 'ad_pct', 'Ads %')}{calcKey(code, 'local_shipping', code === 'EBAY' ? 'Local shipping £' : 'Shipping £')}{calcKey(code, 'misc_expense', 'Miscellaneous £')}</>}
+            <label className="calc-key" title={taxLabel(e)}><span className="l">{p.tax_override_pct === '' ? 'Tax % (company)' : 'Own tax %'}</span>
+              <input value={p.tax_override_pct} onChange={(ev) => setPl(code, { tax_override_pct: ev.target.value })} placeholder={String(Number(companies.find((c) => c.code === p.company_code)?.default_vat_pct ?? 0))} inputMode="decimal" disabled={!canEdit} />
+            </label>
+            <label className="calc-key"><span className="l">Company</span>
+              <select value={p.company_code} onChange={(ev) => setPl(code, { company_code: ev.target.value })} disabled={!canEdit}>
+                {companies.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+              </select>
+            </label>
+            <label className="calc-key"><span className="l">Listing</span>
+              <select value={p.listing_status} onChange={(ev) => setPl(code, { listing_status: ev.target.value as PlatformValues['listing_status'] })} disabled={!canEdit}>
+                <option value="listed">Listed</option><option value="not_listed">Not listed</option>
+              </select>
+            </label>
+          </div>
+          {canEdit && (
+            <div className="calc-ops grid grid-cols-4 gap-2.5">
+              <button type="button" className="calc-op" onClick={() => setPl(code, { selling_price: nudgePrice(p.selling_price, -0.1) })}>−10p</button>
+              <button type="button" className="calc-op" onClick={() => setPl(code, { selling_price: nudgePrice(p.selling_price, 0.1) })}>+10p</button>
+              <button type="button" className="calc-op" onClick={() => setPl(code, { selling_price: roundTo99(p.selling_price) })}>Round .99</button>
+              <button type="button" className="calc-op go" disabled={r.lowest == null} title={`Lowest price for ${settings.roiTargetPct}% ROI`}
+                onClick={() => r.lowest != null && setPl(code, { selling_price: r.lowest.toFixed(2) })}>{r.lowest == null ? 'Target not reachable' : <>Min {gbp(r.lowest)}</>}</button>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+            <span>{r.feesNotSetUp ? `${active.label} fees are all 0 until set under “Fees and ROI target”.` : `Min = lowest price for ${settings.roiTargetPct}% ROI.`}</span>
+            {canEdit && <button type="button" className="underline" onClick={() => setPl(code, { hidden: true })}>Not sold on {active.label}: hide</button>}
+          </div>
+        </div>
+        <div className="receipt" aria-label={`Receipt for ${active.label}`}>
+          <div className="text-center font-bold tracking-[.2em]">RECEIPT</div>
+          <div className="mb-3 text-center text-xs text-stone-500">{active.label}{r.state === 'priced' ? ` · ${gbp(r.price)}` : ''}</div>
+          {receipt.length === 0 ? <p className="py-6 text-center text-stone-500">Enter a selling price to see the breakdown.</p> : receipt.map((l, i) => (
+            <div key={i}>
+              {(l.kind === 'total' || l.kind === 'profit') && <div className="my-2 border-t border-dashed border-stone-400" />}
+              <div className={`ln ${l.kind === 'vat' ? 'pl-4 text-stone-500' : ''} ${l.kind === 'total' ? 'font-bold' : ''} ${l.kind === 'profit' ? `text-base font-bold ${l.amount! < 0 ? 'text-red-700' : 'text-green-700'}` : ''}`}>
+                <span>{l.label}</span><span className="dots" /><span className="w-14 text-right text-stone-500">{l.pct != null ? `${Number(l.pct.toFixed(3))}%` : ''}</span>
+                <span className="w-20 text-right tabular-nums">{l.text}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -220,6 +231,16 @@ export function ProductForm({ initial, companies, settings, canEdit, costNote }:
         <label className="sm:col-span-2 lg:col-span-3"><span className="label">Notes</span><input value={v.notes} onChange={setP('notes')} className="input" disabled={!canEdit} /></label>
       </div>
 
+      {renderCalculator()}
+      {cmp.hidden.length > 0 && (
+        <p className="text-sm text-slate-500">
+          Hidden (not sold on): {cmp.hidden.map((code) => (
+            <span key={code} className="mr-3">{PLATFORMS.find((x) => x.code === code)!.label}
+              {canEdit && <button type="button" className="ml-1 underline" onClick={() => { setPl(code, { hidden: false }); setTab(code); }}>show</button>}</span>
+          ))}
+        </p>
+      )}
+
       {/* MRG-09 AC2/AC3: the comparison */}
       <div className="card overflow-x-auto">
         <table className="table">
@@ -249,28 +270,6 @@ export function ProductForm({ initial, companies, settings, canEdit, costNote }:
         </table>
         <p className="mt-2 text-xs text-slate-500">ROI target {settings.roiTargetPct}%. ROI = profit ÷ landed cost.</p>
       </div>
-
-      {/* entered per platform */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {(() => {
-          // MRG-14: Amazon FBA and FBM sit together in one "Amazon" section
-          const visible = PLATFORMS.filter(({ code }) => !v.platforms[code].hidden);
-          const groups = [...new Set(visible.map((x) => x.group))].map((g) => ({ g, items: visible.filter((x) => x.group === g) }));
-          return groups.map(({ g, items }) => items.length > 1
-            ? <section key={g} className="card space-y-3 md:col-span-2"><h3 className="font-semibold">{g}</h3>
-                <div className="grid gap-3 md:grid-cols-2">{items.map((x) => renderBox(x, false))}</div></section>
-            : renderBox(items[0], true));
-        })()}
-      </div>
-
-      {cmp.hidden.length > 0 && (
-        <p className="text-sm text-slate-500">
-          Hidden (not sold on): {cmp.hidden.map((code) => (
-            <span key={code} className="mr-3">{PLATFORMS.find((x) => x.code === code)!.label}
-              {canEdit && <button type="button" className="ml-1 underline" onClick={() => setPl(code, { hidden: false })}>show</button>}</span>
-          ))}
-        </p>
-      )}
 
       {canEdit && (
         <div className="sticky bottom-16 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-sm md:bottom-4 dark:border-slate-800 dark:bg-slate-900/95">
