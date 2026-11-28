@@ -4,7 +4,7 @@ import {
   breakdown, compareProduct, currencyCheck, entryInput, fxLabel, gbp, pct, PLATFORMS, taxLabel, validateCosts, type Channel, type MarginSettings, type PlatformEntry, type ProductCosts,
 } from '@/lib/margin';
 import type { Result } from '@/lib/data';
-import { saveMarginProduct } from './actions';
+import { checkMarginDuplicate, saveMarginProduct } from './actions';
 import type { PlatformValues, ProductValues } from './values';
 
 const tone = { red: 'text-red-600 dark:text-red-400', green: 'text-emerald-600 dark:text-emerald-400', grey: 'text-slate-500' } as const;
@@ -58,10 +58,18 @@ export function ProductForm({ initial, companies, settings, canEdit, costNote }:
   const warnKey = `${v.product_cost}|${v.product_cost_currency}`;
   const warn = currencyCheck(f(v.product_cost), v.product_cost_currency, settings);
   const needsAnswer = !!warn && kept !== warnKey;
+  // MRG-19: a line that already exists (same name, ASIN or FNSKU) is shown, and not saved twice
+  const [dup, setDup] = useState<Awaited<ReturnType<typeof checkMarginDuplicate>> | null>(null);
+  const renamed = !v.id || v.name !== initial.name || v.asin !== initial.asin || v.fnsku !== initial.fnsku;
+  useEffect(() => {
+    if (!canEdit || !renamed) { setDup(null); return; }
+    const t = setTimeout(async () => setDup(await checkMarginDuplicate({ name: v.name, asin: v.asin, fnsku: v.fnsku, id: v.id ?? null })), 300);
+    return () => clearTimeout(t);
+  }, [v.name, v.asin, v.fnsku, v.id, canEdit, renamed]);
   const onSubmit = (ev: React.FormEvent<HTMLFormElement>) => {
     const errs = validateCosts(v);
     setCostErrors(errs);
-    if (Object.keys(errs).length || needsAnswer) ev.preventDefault();
+    if (Object.keys(errs).length || needsAnswer || dup?.exact) ev.preventDefault();
   };
   const payload = JSON.stringify({ ...v, fx_source: fxTyped ? null : v.fx_source });
 
@@ -159,7 +167,17 @@ export function ProductForm({ initial, companies, settings, canEdit, costNote }:
 
       {/* entered once per product (MRG-09) */}
       <div className="card grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="sm:col-span-2"><span className="label">Product</span><input value={v.name} onChange={setP('name')} className="input" disabled={!canEdit} /></label>
+        <div className="sm:col-span-2"><label><span className="label">Product</span><input value={v.name} onChange={setP('name')} className="input" disabled={!canEdit} /></label>
+          {dup?.message && (
+            <div role="alert" className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+              <span>{dup.message}</span>
+              <a href={`/margins/${dup.exact!.id}`} className="btn-ghost border border-amber-400">Open it</a>
+            </div>
+          )}
+          {!dup?.exact && (dup?.similar.length ?? 0) > 0 && (
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Similar lines already created: {dup!.similar.map((x, i) => <span key={x.id}>{i > 0 && ' · '}<a href={`/margins/${x.id}`} className="underline">{x.name}</a></span>)}. Save only if this is a different product.</p>
+          )}
+        </div>
         <label><span className="label">ASIN</span><input value={v.asin} onChange={setP('asin')} className="input" disabled={!canEdit} /></label>
         <label><span className="label">FNSKU</span><input value={v.fnsku} onChange={setP('fnsku')} className="input" disabled={!canEdit} /></label>
         <div><span className="label">Product cost</span>
@@ -246,6 +264,7 @@ export function ProductForm({ initial, companies, settings, canEdit, costNote }:
         <div className="sticky bottom-16 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-sm md:bottom-4 dark:border-slate-800 dark:bg-slate-900/95">
           <button className="btn" disabled={pending}>{pending ? 'Saving…' : v.id ? 'Save' : 'Create line'}</button>
           {dirty && <span className="text-sm font-medium text-amber-600 dark:text-amber-400">Not saved</span>}
+          {dup?.message && <span className="text-sm text-red-600">{dup.message}: open it instead of saving a second line</span>}
           {s?.error && <span className="text-sm text-red-600">{s.error}</span>}
           {s?.ok && !dirty && <span className="text-sm text-emerald-600">{s.status ?? 'Saved.'}</span>}
           <button type="button" className={`${ghost} ml-auto`} disabled={!dirty} onClick={() => setV(saved)}>Undo changes</button>

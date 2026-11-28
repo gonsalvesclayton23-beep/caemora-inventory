@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { friendlyError, type Result } from '@/lib/data';
 import { PLATFORMS, validateCosts } from '@/lib/margin';
+import { duplicateMessage, findDuplicates } from '@/lib/duplicates';
 
 const NUM_PRODUCT = ['product_cost', 'courier_cost', 'fx_rate'] as const;
 const NUM_PLATFORM = ['selling_price', 'tax_override_pct', 'referral_pct', 'fba_fee', 'promo_per_unit', 'local_shipping', 'misc_expense', 'ad_pct', 'category_fee_pct'] as const;
@@ -19,6 +20,16 @@ const toNum = (v: unknown) => {
   return Number.isFinite(x) ? x : NaN;
 };
 const text = (v: unknown) => String(v ?? '').trim() || null;
+
+/** MRG-19: is this margin line already created? (name ignoring capitals/spaces/punctuation, ASIN or FNSKU) */
+export async function checkMarginDuplicate(input: { name: string; asin?: string; fnsku?: string; id?: number | null }) {
+  if ((input.name ?? '').trim().length < 3 && !input.asin && !input.fnsku) return { exact: null, message: null, similar: [] };
+  const supabase = await createClient();
+  const { data } = await supabase.from('margin_products').select('id, name, asin, fnsku').limit(10000);
+  const existing = (data ?? []).map((p: any) => ({ id: p.id, name: p.name, asins: [p.asin], fnskus: [p.fnsku] }));
+  const d = findDuplicates({ name: input.name, asin: input.asin, fnsku: input.fnsku }, existing, input.id ?? null);
+  return { exact: d.exact, message: d.exact ? duplicateMessage(d.exact) : null, similar: d.similar };
+}
 
 /** Save a product line and its platforms (MRG-09). Only inputs are saved; figures are worked out when shown. */
 export async function saveMarginProduct(_: unknown, f: FormData): Promise<Result> {
