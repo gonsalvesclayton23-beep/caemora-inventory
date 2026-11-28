@@ -14,3 +14,8 @@ begin
   perform refresh_all_flags();
   assert (select count(*) from cases) = 0, 'the nightly check does not create cases for old problems either';
 end $$;
+-- MRG-21 on upgrade: existing margin lines are numbered in the order they were created
+do $$
+begin
+  assert (select string_agg(cae_code, ',' order by id) from margin_products) = 'CAE0001,CAE0002,CAE0003', 'existing lines numbered in order';
+end $$;

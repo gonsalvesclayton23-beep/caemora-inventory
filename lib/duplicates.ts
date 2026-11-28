@@ -39,3 +39,14 @@ export function findDuplicates(input: { name: string; asin?: string | null; fnsk
 
 export const duplicateMessage = (d: Exact) =>
   `Already created: ${d.name}${d.reason === 'name' ? '' : ` (${d.reason === 'asin' ? 'ASIN' : 'FNSKU'} ${d.code})`}`;
+
+/** PRD-09 / MRG-20: existing products for what has been typed so far (from the first letter): names that start with it
+ * first, then names that contain it; at most 8. A notice only: it does not stop a new product being saved. */
+export function typeAhead<T extends { id: number; name: string }>(text: string, existing: T[], limit = 8): T[] {
+  const t = (text ?? '').trim().toLowerCase();
+  if (!t) return [];
+  const starts = existing.filter((e) => e.name.toLowerCase().startsWith(t));
+  const contains = existing.filter((e) => !e.name.toLowerCase().startsWith(t) && e.name.toLowerCase().includes(t));
+  const byName = (a: T, b: T) => a.name.localeCompare(b.name);
+  return [...starts.sort(byName), ...contains.sort(byName)].slice(0, limit);
+}

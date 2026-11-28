@@ -17,19 +17,22 @@ export interface ProductHit {
 /** Search by name, FNSKU or ASIN. Returns the rate card and the last purchase of each product. */
 export async function searchProducts(q: string): Promise<ProductHit[]> {
   const term = q.trim();
-  if (term.length < 2) return [];
+  if (term.length < 1) return [];   // PRD-09: from the first letter
   const supabase = await createClient();
   const select = 'id, name, agreed_courier_per_unit, agreed_courier_currency, listings(id, company_code, channel, fnsku, asin)';
   const safe = term.replace(/[%,()"\\]/g, ' ');
 
   const [byName, byCode] = await Promise.all([
-    supabase.from('products').select(select).eq('active', true).eq('category', 'stock').ilike('name', `%${safe}%`).limit(20),
+    supabase.from('products').select(select).eq('active', true).eq('category', 'stock').ilike('name', `%${safe}%`).order('name').limit(200),
     supabase.from('listings').select('product_id').or(`fnsku.ilike."${safe}%",asin.ilike."${safe}%"`).limit(20),
   ]);
   const ids = new Set((byName.data ?? []).map((p: any) => p.id));
   const extraIds = (byCode.data ?? []).map((l: any) => l.product_id).filter((id: number) => !ids.has(id));
   const extra = extraIds.length ? (await supabase.from('products').select(select).in('id', extraIds)).data ?? [] : [];
-  const products = [...extra, ...(byName.data ?? [])] as any[];
+  // names starting with what was typed come first, then names containing it (PRD-09)
+  const t = term.toLowerCase();
+  const named = ((byName.data ?? []) as any[]).sort((a, b) => Number(!a.name.toLowerCase().startsWith(t)) - Number(!b.name.toLowerCase().startsWith(t)));
+  const products = [...extra, ...named] as any[];
   if (!products.length) return [];
 
   const { data: recent } = await supabase.from('purchase_lines')

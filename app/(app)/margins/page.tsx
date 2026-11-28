@@ -38,7 +38,7 @@ export default async function MarginsPage({ searchParams }: { searchParams: Prom
   // company: products with a platform sold by that company; platform: products priced on it
   if (company) rows = rows.filter((r) => r.priced.length > 0 || r.entries.some((e) => e.companyCode === company));
   if (platform) rows = rows.filter((r) => r.c.rows.some((x) => x.channel === platform && x.state === 'priced'));
-  if (sp.q) { const q = sp.q.toLowerCase(); rows = rows.filter((r) => [r.name, r.asin, r.fnsku].some((x: string | null) => x?.toLowerCase().includes(q))); }
+  if (sp.q) { const q = sp.q.toLowerCase(); rows = rows.filter((r) => [r.name, r.asin, r.fnsku, r.cae_code].some((x: string | null) => x?.toLowerCase().includes(q))); }
   rows = sortLines(rows, 'sortValue', dir);
   const below = rows.reduce((n, r) => n + r.priced.filter((x) => x.status.tone === 'red').length, 0);
 
@@ -78,7 +78,7 @@ export default async function MarginsPage({ searchParams }: { searchParams: Prom
           <option value="">All platforms</option>
           {PLATFORMS.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
         </select>
-        <input name="q" defaultValue={sp.q} placeholder="Product, ASIN or FNSKU" className="input max-w-xs" />
+        <input name="q" defaultValue={sp.q} placeholder="Product, CAE ID, ASIN or FNSKU" className="input max-w-xs" />
         <button className="btn">Show</button>
       </form>
 
@@ -109,7 +109,7 @@ export default async function MarginsPage({ searchParams }: { searchParams: Prom
             {rows.map((r) => (
               <tr key={r.id}>
                 <td>
-                  <Link href={`/margins/${r.id}`} className="font-medium hover:underline">{r.name}</Link>
+                  <span className="mr-1.5 text-xs font-semibold tabular-nums text-slate-500">{r.cae_code}</span><Link href={`/margins/${r.id}`} className="font-medium hover:underline">{r.name}</Link>
                   <div className="text-xs text-slate-500">{[r.asin, r.fnsku, r.owner].filter(Boolean).join(' · ')}</div>
                   <div className="text-xs text-slate-400">₹{Number(r.fx_rate).toFixed(2)}/£ · {fxLabel(r.fx_source, r.fx_rate_date)}</div>
                 </td>

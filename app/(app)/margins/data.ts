@@ -34,7 +34,7 @@ export function productValues(p: any, lines: any[], s: MarginSettings, defaultCo
     } : blankPlatform(code, s, lines[0]?.company_code ?? defaultCompany);
   }
   return {
-    id: p.id, product_id: p.product_id, name: p.name, asin: p.asin ?? '', fnsku: p.fnsku ?? '', owner: p.owner ?? '', notes: p.notes ?? '',
+    id: p.id, product_id: p.product_id, cae_code: p.cae_code ?? null, name: p.name, asin: p.asin ?? '', fnsku: p.fnsku ?? '', owner: p.owner ?? '', notes: p.notes ?? '',
     product_cost: str(p.product_cost), product_cost_currency: p.product_cost_currency === 'GBP' ? 'GBP' : 'INR',
     courier_cost: str(p.courier_cost), courier_currency: p.courier_currency === 'GBP' ? 'GBP' : 'INR',
     fx_rate: str(p.fx_rate), fx_rate_date: p.fx_rate_date, fx_source: p.fx_source, platforms,

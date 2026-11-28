@@ -167,14 +167,26 @@ export function ProductForm({ initial, companies, settings, canEdit, costNote }:
 
       {/* entered once per product (MRG-09) */}
       <div className="card grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="sm:col-span-2"><label><span className="label">Product</span><input value={v.name} onChange={setP('name')} className="input" disabled={!canEdit} /></label>
+        <div><span className="label">Caemora product ID</span>
+          <div className="py-2 font-semibold tabular-nums">{v.cae_code ?? <span className="font-normal text-slate-500">Given when saved (next number)</span>}</div>
+        </div>
+        <div className="sm:col-span-2 lg:col-span-3"><label><span className="label">Product</span><input value={v.name} onChange={setP('name')} className="input" disabled={!canEdit} /></label>
           {dup?.message && (
             <div role="alert" className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
               <span>{dup.message}</span>
               <a href={`/margins/${dup.exact!.id}`} className="btn-ghost border border-amber-400">Open it</a>
             </div>
           )}
-          {!dup?.exact && (dup?.similar.length ?? 0) > 0 && (
+          {!dup?.exact && (dup?.matches.length ?? 0) > 0 && (
+            <div className="mt-1 rounded-lg border border-slate-200 p-2 text-xs dark:border-slate-700">
+              <div className="mb-1 font-medium text-slate-600 dark:text-slate-300">Already created (check it isn&apos;t one of these):</div>
+              <ul className="space-y-0.5">{dup!.matches.map((x) => (
+                <li key={x.id} className="flex justify-between gap-2"><span><span className="tabular-nums text-slate-500">{x.code}</span> {x.name}</span>
+                  <a href={`/margins/${x.id}`} className="underline">Open it</a></li>
+              ))}</ul>
+            </div>
+          )}
+          {!dup?.exact && !(dup?.matches.length) && (dup?.similar.length ?? 0) > 0 && (
             <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Similar lines already created: {dup!.similar.map((x, i) => <span key={x.id}>{i > 0 && ' · '}<a href={`/margins/${x.id}`} className="underline">{x.name}</a></span>)}. Save only if this is a different product.</p>
           )}
         </div>

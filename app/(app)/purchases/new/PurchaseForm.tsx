@@ -252,8 +252,13 @@ function ProductSearch({ company, onPick }: { company: string; onPick: (p: Produ
     return () => clearTimeout(t);
   }, [q]);
 
-  const sorted = useMemo(() => [...hits].sort((a, b) =>
-    Number(b.listings.some((l) => l.company_code === company)) - Number(a.listings.some((l) => l.company_code === company))), [hits, company]);
+  // PRD-09: names starting with what was typed first, then this company's products, at most 8
+  const sorted = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    const starts = (p: ProductHit) => Number(p.name.toLowerCase().startsWith(t));
+    const mine = (p: ProductHit) => Number(p.listings.some((l) => l.company_code === company));
+    return [...hits].sort((a, b) => starts(b) - starts(a) || mine(b) - mine(a)).slice(0, 8);
+  }, [hits, company, q]);
 
   function pick(p: ProductHit) { onPick(p); setQ(''); setHits([]); }
 
@@ -268,6 +273,7 @@ function ProductSearch({ company, onPick }: { company: string; onPick: (p: Produ
   return (
     <div className="space-y-2">
       <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search product name, FNSKU or ASIN…" />
+      {sorted.length > 0 && <p className="text-xs font-medium text-slate-600 dark:text-slate-300">Already created: pick one, or add a new product below if yours isn&apos;t here</p>}
       {sorted.length > 0 && (
         <ul className="max-h-72 divide-y divide-slate-100 overflow-auto rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
           {sorted.map((p) => {
