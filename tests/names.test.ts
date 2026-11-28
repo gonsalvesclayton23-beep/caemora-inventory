@@ -27,6 +27,6 @@ test('Rename AC2: the Margins tab is called "Product margins" (menu, heading, ba
 test('Rename AC3: addresses and every other tab are unchanged', () => {
   assert.deepEqual(NAV.map((n) => `${n.href}=${n.label}`), [
     '/=Dashboard', '/margins=Product margins', '/purchases=Purchases', '/shipments=Shipments', '/invoices=Invoices', '/products=Products', '/flags=Flags',
-    '/cases=Cases', '/reconciliation=Reconciliation', '/landed-cost=Landed cost', '/audit=Audit log', '/admin=Admin',
+    '/cases=Cases', '/losses=Losses', '/reconciliation=Reconciliation', '/landed-cost=Landed cost', '/audit=Audit log', '/admin=Admin',
   ]);
 });

@@ -18,7 +18,7 @@ const lines = (i: MarginInput, s: MarginSettings = S) => breakdown(i, s).map(bre
 
 // MRG-10 ------------------------------------------------------------------------------------------
 test('MRG-10 AC1/AC2: Product margins is second in the menu, for everyone; the rest keep their order', () => {
-  assert.deepEqual(NAV.map((n) => n.href), ['/', '/margins', '/purchases', '/shipments', '/invoices', '/products', '/flags', '/cases', '/reconciliation', '/landed-cost', '/audit', '/admin']);
+  assert.deepEqual(NAV.map((n) => n.href), ['/', '/margins', '/purchases', '/shipments', '/invoices', '/products', '/flags', '/cases', '/losses', '/reconciliation', '/landed-cost', '/audit', '/admin']);
   assert.equal(NAV[1].who, 'all');
 });
 

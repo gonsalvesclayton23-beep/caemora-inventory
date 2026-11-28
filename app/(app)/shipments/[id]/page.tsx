@@ -19,6 +19,8 @@ export default async function ShipmentPage({ params, searchParams }: { params: P
       .eq('shipment_id', Number(id)).order('invoice_no').order('id'),
   ]);
   if (!s) notFound();
+  const { data: lossRows } = s.status === 'lost' ? await supabase.from('losses').select('qty').eq('shipment_id', s.id) : { data: [] };
+  const lostUnits = (lossRows ?? []).reduce((t: number, l: any) => t + Number(l.qty), 0);
   // receipt remarks live on the purchase line (as before)
   const lineIds = (lines ?? []).map((l) => l.purchase_line_id);
   const { data: remarks } = lineIds.length
@@ -58,6 +60,14 @@ export default async function ShipmentPage({ params, searchParams }: { params: P
         <div className="flex flex-wrap gap-2">
           <Link href={`/purchases/new?shipment=${s.id}`} className="btn">+ Add purchase to this shipment</Link>
           {s.status === 'in_transit' && <Link href={`/shipments/pack?box=${s.id}`} className="btn-ghost border border-slate-300 dark:border-slate-700">+ Add lines already bought</Link>}
+        </div>
+      )}
+      {/* LOS-04: a lost box can be recorded as losses, one per product, filled in from its contents */}
+      {s.status === 'lost' && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+          <span>This box is marked lost.{lostUnits ? ` ${lostUnits} unit${lostUnits === 1 ? '' : 's'} already recorded as losses.` : ''}</span>
+          {me.role !== 'viewer' && <Link href={`/losses/new?shipment=${s.id}`} className="btn">Record as loss</Link>}
+          {lostUnits > 0 && <Link href={`/losses?month=${new Date().toISOString().slice(0, 7)}-01`} className="underline">See losses</Link>}
         </div>
       )}
       {!lines?.length && <p className="text-sm text-slate-500">No products in this shipment yet.</p>}

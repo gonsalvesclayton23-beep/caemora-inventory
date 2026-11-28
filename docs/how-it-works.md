@@ -54,6 +54,7 @@ New logins start **inactive**: an admin sets the role and ticks Active. All of t
 | **Invoices** | Upload and find invoice files |
 | **Products** | Product master and the agreed courier rate card (admin edits) |
 | **Flags** | Automatic warnings (see §7); admins acknowledge or resolve |
+| **Losses** | Lost shipments, damaged returns, refunds without the item back and expired goods; net loss per month; monthly report and CSV (see §6b) |
 | **Cases** | Flags that need someone to act, each with an owner and due date (see §8) |
 | **Reconciliation** | Per supplier, company and month: opening, purchases, credit notes, payments, closing; settle or reopen a month (admin, viewer) |
 | **Landed cost** | ₹ and £ per unit by product, company and month; per unit received (admin, viewer) |
@@ -85,6 +86,15 @@ New logins start **inactive**: an admin sets the role and ticks Active. All of t
 - The dashboard shows a tile for **Caemora Ltd, ARC UK G Ltd, Youdent Ltd and Goenche Ltd**: the total for the **current month and the 11 before it**, how many months are not entered yet, and a small bar per month (hover for the figure).
 - **Everyone** can see the tiles; only an admin can enter or change figures. Every change is in the Audit log.
 - Automatic sales from Amazon and eBay is for later; it would fill the same figures.
+
+## 6b. Losses (LOS-01..LOS-04)
+
+- The **Losses** tab records stock that is lost or written off, so it can be accounted for every month. Types: **Shipment lost in transit**, **Return came back damaged**, **Delivered, but the platform refunded the buyer**, **Goods expired**.
+- Each loss has a date (sets its month), type, company, platform (optional), product, units, reference (order / case / tracking ID) and notes, saved with who recorded it and when.
+- **Net loss (£) = goods at landed cost + refund paid to the buyer − anything recovered** (e.g. an Amazon reimbursement or courier claim). The cost per unit is offered from the product's latest purchase (price + courier, in £) and can be changed.
+- Admins and the India team record and correct losses at any time (settled months included, as they are often found late); viewers read; only an admin deletes. Every change is in the Audit log.
+- A box marked **Lost** shows **Record as loss**: one loss per product in the box, with each line's own landed cost, and how many units are already recorded (so nothing is counted twice).
+- The tab shows the month's losses and totals, and a **monthly report** for the last 12 months (net loss by type and company). CSV export with the same filters.
 
 ## 7. Flags
 
@@ -160,7 +170,7 @@ Every add, change and delete made in the app is recorded with who and when, plus
 2. Merge the pull request on GitHub. Vercel redeploys the site.
 3. `supabase/setup.sql` is the full database for a brand-new project only, never for the live one.
 
-Updates so far, in order: dashboard and invoices (22 Nov) → boxes (25 Nov) → daily FX (25 Nov) → companies and VAT (26 Nov) → margins (26 Nov) → margin platforms (26 Nov) → audit log (27 Nov) → cases and receiving (27 Nov) → company sales (27 Nov) → dashboard India/China charts (28 Nov) → margin fees (28 Nov) → no duplicate products (28 Nov) → CAE product IDs (28 Nov).
+Updates so far, in order: dashboard and invoices (22 Nov) → boxes (25 Nov) → daily FX (25 Nov) → companies and VAT (26 Nov) → margins (26 Nov) → margin platforms (26 Nov) → audit log (27 Nov) → cases and receiving (27 Nov) → company sales (27 Nov) → dashboard India/China charts (28 Nov) → margin fees (28 Nov) → no duplicate products (28 Nov) → CAE product IDs (28 Nov) → losses (28 Nov).
 
 ## 14. Decisions log
 
@@ -179,6 +189,7 @@ Updates so far, in order: dashboard and invoices (22 Nov) → boxes (25 Nov) →
 | 27 Nov 2026 | Receiving: "received" includes defective; short = sent − received; more than sent is refused for now; Amazon case ID kept on the box line for SHP-05 (built later) |
 | 27 Nov 2026 | PUR-07: Purchases grouped by shipment, with a plain-list switch; a shipment shows only the selected month's lines (others counted on its header) |
 | 27 Nov 2026 | PUR-07 AC7: each shipment on the Purchases tab ends with a total row: units, goods, courier paid, total (per currency) |
+| 28 Nov 2026 | LOS-01..04: Losses tab. Four types (the two "damaged return" items are one type); net loss = landed cost + refund − recovered, in £; admins and India team record, viewers read, admin deletes; recordable in settled months; a lost box offers "Record as loss" (by button, never automatic) |
 | 28 Nov 2026 | DSH-07: platform logos added to the dashboard ticker after the companies; Amazon and OnBuy shown as names (their logos aren't in the free icon set; Clayton can supply files) |
 | 28 Nov 2026 | MRG-22 AC5: the calculator display turns red for any loss (negative profit or ROI), not only below the ROI target |
 | 28 Nov 2026 | MRG-23: one smaller calculator per platform, all side by side (replaces MRG-22's tabs); receipt opens per calculator |
