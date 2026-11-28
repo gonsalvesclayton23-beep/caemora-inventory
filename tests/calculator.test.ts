@@ -54,3 +54,13 @@ test('MRG-23 AC3: each calculator has its own receipt, opened on request; read-o
   assert.match(form, /calc-key[\s\S]*disabled=\{!canEdit\}/);
   assert.match(form, /\{canEdit && \(\s*<div className="calc-ops/);
 });
+
+test('MRG-22 AC5: the display turns red whenever profit or ROI is negative, even before a cost is entered', () => {
+  const noCost: ProductCosts = { productCost: 0, productCostCurrency: 'INR', courierCost: 0, courierCurrency: 'INR', fxRate: 115 };
+  const loss = compareProduct(noCost, [{ ...fba, sellingPrice: 12, fbaFee: 10 }], S);
+  const d = displayState(loss.rows[0], loss.landed);
+  assert.equal(d.profit.startsWith('−'), true);
+  assert.equal(d.tone, 'red');
+  const neg = compareProduct(soap, [{ ...fba, sellingPrice: 5 }], S);
+  assert.equal(displayState(neg.rows[0], neg.landed).tone, 'red');
+});
