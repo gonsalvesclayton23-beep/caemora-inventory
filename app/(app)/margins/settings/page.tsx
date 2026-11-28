@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic';
 
 const OTHER = /^margin_(shopify|onbuy|etsy)_/;
 const GROUPS = [
-  { title: 'Amazon, eBay and ROI target', platform: false, test: (k: string) => !OTHER.test(k) },
+  { title: 'Amazon, eBay and ROI target', platform: false, test: (k: string) => !OTHER.test(k) && !k.startsWith('margin_suspect_') },
+  { title: 'Currency check on product cost', platform: false, test: (k: string) => k.startsWith('margin_suspect_') },
   { title: 'Shopify', platform: true, test: (k: string) => k.startsWith('margin_shopify_') },
   { title: 'OnBuy', platform: true, test: (k: string) => k.startsWith('margin_onbuy_') },
   { title: 'Etsy', platform: true, test: (k: string) => k.startsWith('margin_etsy_') },

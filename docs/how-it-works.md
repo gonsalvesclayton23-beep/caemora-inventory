@@ -44,7 +44,7 @@ Lists always follow this order. Selling one product through several companies' a
 
 New logins start **inactive**: an admin sets the role and ticks Active. All of these rules are enforced **in the database** (row-level security and triggers), so they hold whatever screen or script touches the data.
 
-## 4. The screens (menu order)
+## 4. The screens (menu order: Dashboard, Product margins, then the rest)
 
 | Screen | What it is for |
 |---|---|
@@ -127,8 +127,10 @@ The product master holds each product's name, its listings (company, FNSKU, ASIN
 
 - A separate section with its own data; it never changes purchases, shipments or payments. Everyone can see it; only an admin changes it.
 - **One line per product.** Entered once: name, ASIN, FNSKU, product cost and courier cost (₹ or £), and the exchange rate (locked on the line until "Use today's rate"). **Landed cost** is worked out once and used by every platform.
-- **Per platform** (Amazon, eBay, Shopify, OnBuy, Etsy): the company that sells it there (sets the tax), the selling price, and that platform's own costs.
-- **Formulas.** Amazon: referral fee % of price + VAT on it, FBA fee + VAT on it, FBA surcharge (2% of FBA fee), Digital Services Tax (2% of referral + FBA fee), promo/ads £ per unit. eBay: fee 12.8% + £0.30 with VAT, ads % of price with VAT, shipping and misc. Shopify/OnBuy/Etsy: platform fee %, fixed fee and payment fee (% + £) with that platform's VAT, ads %, shipping and misc. **Tax** = price × the company's VAT (or the line's own rate). **Profit** = price − final cost. **ROI** = profit ÷ landed cost.
+- **Per platform** (Amazon FBA and Amazon FBM, shown together under "Amazon"; eBay, Shopify, OnBuy, Etsy): the company that sells it there (sets the tax), the selling price, and that platform's own costs.
+- **Product cost and courier cost are required** (0 is a valid courier cost). A ₹ product cost under ₹20 or a £ product cost over £50 asks "Is the currency right?" with Change / Keep (limits are settings) (MRG-11).
+- Each platform shows a **breakdown**: every fee with its % and its £ amount (2 decimals, lined up), VAT on its own line, then final cost and profit (MRG-12). Advertising is called **Ads** everywhere: "Ads (£ per unit)" or "Ads %" (MRG-13).
+- **Formulas.** Amazon FBA: referral fee % of price + VAT on it, FBA fee + VAT on it, FBA surcharge (2% of FBA fee), Digital Services Tax (2% of referral + FBA fee), miscellaneous, Ads £ per unit. Amazon FBM: referral fee + VAT on it, Digital Services Tax (2% of referral fee), local courier, miscellaneous, Ads £ per unit (no FBA fee, VAT on it or surcharge). eBay: selling fee 12.8% + category fee % (per product) + fixed £0.30, with VAT on all three together; Ads % with VAT; shipping and misc. Shopify **selling fee %**, OnBuy **sales fee %**, Etsy **transaction fee %** and **payment fee £0.20**, plus any fixed and payment processing fees, with that platform's VAT on fees (a setting, 0% until known); Ads %; shipping and misc. Every % rate is an admin setting, except the eBay category fee, which is per product. **Tax** = price × the company's VAT (or the line's own rate). **Profit** = price − final cost. **ROI** = profit ÷ landed cost.
 - Shows **Best return**, **Below target** (ROI under 25%, in red), **Not priced**, **Fees not set up** (Shopify, OnBuy and Etsy fees start at 0 until entered), and the **lowest price for the ROI target**. Platforms not sold on can be hidden. Price history is kept.
 - Old separate Amazon/eBay lines for the same product are offered as **possible matches**; an admin confirms each one (choosing whose costs to keep). Nothing merges on its own.
 
@@ -151,7 +153,7 @@ Every add, change and delete made in the app is recorded with who and when, plus
 2. Merge the pull request on GitHub. Vercel redeploys the site.
 3. `supabase/setup.sql` is the full database for a brand-new project only, never for the live one.
 
-Updates so far, in order: dashboard and invoices (22 Nov) → boxes (25 Nov) → daily FX (25 Nov) → companies and VAT (26 Nov) → margins (26 Nov) → margin platforms (26 Nov) → audit log (27 Nov) → cases and receiving (27 Nov) → company sales (27 Nov) → dashboard India/China charts (28 Nov).
+Updates so far, in order: dashboard and invoices (22 Nov) → boxes (25 Nov) → daily FX (25 Nov) → companies and VAT (26 Nov) → margins (26 Nov) → margin platforms (26 Nov) → audit log (27 Nov) → cases and receiving (27 Nov) → company sales (27 Nov) → dashboard India/China charts (28 Nov) → margin fees (28 Nov).
 
 ## 14. Decisions log
 
@@ -170,6 +172,7 @@ Updates so far, in order: dashboard and invoices (22 Nov) → boxes (25 Nov) →
 | 27 Nov 2026 | Receiving: "received" includes defective; short = sent − received; more than sent is refused for now; Amazon case ID kept on the box line for SHP-05 (built later) |
 | 27 Nov 2026 | PUR-07: Purchases grouped by shipment, with a plain-list switch; a shipment shows only the selected month's lines (others counted on its header) |
 | 27 Nov 2026 | PUR-07 AC7: each shipment on the Purchases tab ends with a total row: units, goods, courier paid, total (per currency) |
+| 28 Nov 2026 | MRG-10..18: Product margins second in the menu; costs required with a currency check (₹ under 20, £ over 50); fees shown as % and £ with VAT lines; "Ads" everywhere; Amazon FBM as its own row beside FBA under "Amazon" (VAT applies to the FBM referral fee; FBA also has a misc field); eBay selling + category fee; Shopify selling fee, OnBuy sales fee, Etsy transaction fee and £0.20 payment fee (existing settings renamed). Shopify/OnBuy/Etsy fee VAT stays a setting at 0% until known |
 | 28 Nov 2026 | Audit log times can be shown in UK time or India time (switch on the screen, also used by the CSV). Dashboard: the sales tiles moved up, straight after the exchange rate |
 | 28 Nov 2026 | DSH-06 (revised): one chart per country instead of two, three bars a month (units, price per unit, courier per unit) with units on the left scale and per-unit costs on the right scale, as Clayton chose (option 2); the legend says which scale each bar uses |
 | 28 Nov 2026 | DSH-06: the dashboard's single "Units ordered per month" chart (DSH-01) is replaced by two diagrams: India (Indian suppliers, ₹) and China (Chinese suppliers, £). Each shows units per month and, below with months lined up, average price per unit (goods ÷ units) and courier per unit (courier ÷ units). Other suppliers (e.g. UK packaging) are not in either |
