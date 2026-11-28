@@ -30,3 +30,13 @@ test('DSH-05 AC3: "My cases" is no longer on the dashboard; the Cases tab keeps 
   assert.doesNotMatch(dashboard, /myCasesLabel|v_my_cases/);
   assert.match(readFileSync('app/(app)/layout.tsx', 'utf8'), /v_my_cases[\s\S]*badge\(n\.href\)/);
 });
+
+test('DSH-07 AC1: the ticker also shows the platforms: Amazon, eBay, Shopify, Etsy, OnBuy and TikTok (logo where there is one)', async () => {
+  const { TICKER_PLATFORMS } = await import('../lib/ticker.ts');
+  assert.deepEqual(TICKER_PLATFORMS.map((p) => [p.name, p.logo ?? null]), [
+    ['Amazon', null], ['eBay', '/logos/platforms/ebay.svg'], ['Shopify', '/logos/platforms/shopify.svg'],
+    ['Etsy', '/logos/platforms/etsy.svg'], ['OnBuy', null], ['TikTok', '/logos/platforms/tiktok.svg'],
+  ]);
+  for (const p of TICKER_PLATFORMS) if (p.logo) assert.ok(existsSync(`public${p.logo}`), p.logo);
+  assert.match(ticker, /TICKER_PLATFORMS/);
+});

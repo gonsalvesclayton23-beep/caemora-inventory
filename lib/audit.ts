@@ -31,6 +31,7 @@ export const AREAS: Record<string, string> = {
   margin_match_dismissed: 'Product margin',
   case_rules: 'Case rule',
   company_sales: 'Sales (monthly)',
+  losses: 'Loss',
 };
 export const AUDIT_ACTIONS: Record<string, string> = {
   INSERT: 'Added', UPDATE: 'Changed', DELETE: 'Deleted',
