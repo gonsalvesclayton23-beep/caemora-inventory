@@ -36,3 +36,11 @@ test('DSH-04 AC3: the 12 months are this month and the 11 before; older months a
   assert.deepEqual(cmr.months[11], { month: '2026-11-01', amount: null });
   assert.equal(cmr.missing, 11);
 });
+
+test('DSH-04 AC5: the sales tiles sit at the top, straight after the exchange rate', () => {
+  const fx = dashboard.indexOf('<FxCard'), sales = dashboard.indexOf('Sales, last 12 months');
+  const between = dashboard.slice(fx, sales);
+  assert.ok(fx > 0 && sales > fx, 'sales come after the exchange rate');
+  assert.equal(between.split('<section').length - 1, 1, 'only the sales section itself');
+  assert.doesNotMatch(between, /<OriginCharts|Purchases this month/, 'nothing else in between');
+});

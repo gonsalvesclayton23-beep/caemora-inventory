@@ -158,3 +158,13 @@ export const AUDIT_EXPORT_COLUMNS = ['when_uk', 'who', 'email', 'area', 'action'
 
 export const ukTime = (iso: string) =>
   new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Europe/London' });
+
+/** AUD AC8: the Audit log shows every time in one zone, UK or India, picked on the screen (UK unless India is picked). */
+export const AUDIT_ZONES = {
+  uk: { label: 'UK time', short: 'UK', tz: 'Europe/London' },
+  india: { label: 'India time', short: 'India', tz: 'Asia/Kolkata' },
+} as const;
+export type AuditZone = keyof typeof AUDIT_ZONES;
+export const auditZone = (v: string | undefined | null): AuditZone => (v === 'india' ? 'india' : 'uk');
+export const auditTime = (iso: string, zone: AuditZone) =>
+  `${new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: AUDIT_ZONES[zone].tz })} ${AUDIT_ZONES[zone].short}`;
