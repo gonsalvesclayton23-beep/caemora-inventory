@@ -7,7 +7,8 @@ export function displayState(r: ComparisonRow, landed: number) {
   if (r.state !== 'priced' || !r.result) {
     return { profit: '—', roi: 'Enter a selling price', landed: gbp(landed), final: '—', status: 'Not priced', tone: 'grey' as const };
   }
-  const below = r.status.tone === 'red';
+  // red when below the ROI target, or whenever profit or ROI is negative (even before a cost is entered)
+  const below = r.status.tone === 'red' || r.result.profit < 0 || (r.result.roi != null && r.result.roi < 0);
   const status = [r.status.label, r.best ? 'Best return' : null, r.feesNotSetUp ? 'Fees not set up' : null].filter(Boolean).join(' · ');
   return {
     profit: gbp(r.result.profit), roi: `ROI ${pct(r.result.roi)}`, landed: gbp(landed), final: gbp(r.result.finalCost),
